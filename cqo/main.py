@@ -55,4 +55,4 @@ for i in range(N*SIM_DURATION):
 #   - entanglement
 
 plt.plot(np.diag(state))
-plt.savefig("C:\outputpdf.png")
+plt.savefig("C:\\outputpdf.png")
