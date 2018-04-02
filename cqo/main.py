@@ -25,7 +25,7 @@ down_projector = np.eye(2) - up_projector
 
 spin_state = up_projector
 
-particle_state = np.zeros(accessed_state_count, accessed_state_count)
+particle_state = np.zeros(accessed_state_count)
 particle_state[0][0] = 1
 
 state = np.kron(spin_state, particle_state)
@@ -55,4 +55,4 @@ for i in range(N*SIM_DURATION):
 #   - entanglement
 
 plt.plot(np.diag(state))
-plt.savefig("C:\\outputpdf.png")
+plt.savefig("~/output_pdf.png")
