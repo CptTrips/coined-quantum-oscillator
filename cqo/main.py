@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 # OPTIONS !!! PUT THESE IN A CFG/TURN THESE INTO ARGUMENTS !!!
 N = 1
 LAMBDA = 0.1
-SIM_DURATION = 3
+SIM_DURATION = 25
 Haddamard = (1/np.sqrt(2))*np.array([
     [1, 1],
     [1, -1]
@@ -58,9 +58,9 @@ def tensor_swap(O, dim_A):
 
     O_cols = swap_cols(O, dim_A)
 
-    O_swapped = swap_cols(O_cols.T(), dim_A)
+    O_swapped = swap_cols(O_cols.T, dim_A)
 
-    O_swapped = O_swapped.T()
+    O_swapped = O_swapped.T
 
     return O_swapped
 
@@ -134,7 +134,7 @@ def partial_trace(O, dim_A):
 
 # Prepare basis & initial state
 # Number of position states the particle will access
-accessed_state_count = N*SIM_DURATION + 1
+accessed_state_count = 2*SIM_DURATION + 1
 
 # Initial spin state
 spin_up_projector = np.array([
@@ -146,7 +146,7 @@ spin_down_projector = np.eye(2) - spin_up_projector
 spin_state = spin_up_projector
 
 # Initial particle state
-particle_vector_state = np.array([1] + [0] * (accessed_state_count - 1), dtype=np.complex128)
+particle_vector_state = np.array([0]* SIM_DURATION + [1] + [0] * SIM_DURATION, dtype=np.complex128)
 particle_state = np.outer(particle_vector_state, particle_vector_state)
 
 state = np.kron(spin_state, particle_state)
@@ -161,23 +161,24 @@ for i in range(accessed_state_count):
 
 # Controlled-translation operator
 up_projector = np.kron(spin_up_projector, np.eye(accessed_state_count))
-cshift_op = up_projector + np.kron(spin_down_projector, shift_op)
+cshiftr_op = up_projector + np.kron(spin_down_projector, shift_op)
+
+cshiftl_op = cshiftr_op.T
+
+shift_ops = [cshiftr_op, cshiftl_op]
 
 # Iterate over walk steps
-for i in range(N*SIM_DURATION):
-    #import pdb; pdb.set_trace()
-#   - apply coin
-    state = coin_op @  state @  H(coin_op)
+for i in range(SIM_DURATION):
 
-#   - apply shift
-    state = cshift_op @ state @ H(cshift_op)
+    for j in range(2):
+
+        # apply coin
+        state = coin_op @  state @  H(coin_op)
+    
+        # apply shift j
+        state = shift_ops[j] @ state @ H(shift_ops[j])
 
 # Output statistics
-#   - create new output folder
-#   - save state
-#   - pdf
-#   - entanglement
-
 reduced_state = partial_trace(state, accessed_state_count)
 plt.plot(np.diag(reduced_state))
 plt.savefig("/home/matthewf/output_pdf.png")
