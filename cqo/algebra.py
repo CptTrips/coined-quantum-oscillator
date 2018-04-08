@@ -65,14 +65,18 @@ def condition_subsystem(O, subsystem_vector):
     if np.mod(len(O), len(subsystem_vector)) != 0:
         raise MathError(('{0}x{0} operator cannot be conditioned by '
                          '{1}D vector').format(len(O), len(subsystem_vector)))
-    
+
     dim_A = int(len(O) / len(subsystem_vector))
 
     condition_matrix = np.kron(subsystem_vector, np.eye(dim_A))
 
     O_A = condition_matrix @ O @ H(condition_matrix)
 
-    return O_A
+    # Normalise
+    p = np.trace(O_A)
+    O_A = O_A / np.trace(O_A)
+
+    return O_A, p
 
 
 def partial_trace(O, dim_A):

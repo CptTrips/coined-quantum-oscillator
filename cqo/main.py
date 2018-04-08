@@ -34,8 +34,10 @@ def main():
 
     COIN_OP = balanced_flip
 
-    # Run simulation
+    # Calculate state after quantum walk
     final_state = simulate.simulate(COIN_OP, SIM_DURATION)
+
+    # Calculate spatial pdf from final state
 
     # Output
     output.output(final_state)

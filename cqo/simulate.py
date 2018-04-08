@@ -1,5 +1,6 @@
 import numpy as np
 from algebra import H
+from algebra import condition_subsystem
 
 
 def set_up(periods, coin_op):
@@ -77,4 +78,54 @@ def simulate(coin_op, periods):
 
     return final_state
 
+def spatial_pdf(state, mass, omega, alpha_0, beta, resolution, error):
+    """Calculates the spatial probability distribution of a density matrix whose basis states
+    are evenly spaced coherent states.
 
+    Args:
+        state (nxn ndarray): Density matrix in coherent lattice basis
+        mass (float): Particle mass
+        omega (float): Oscillator angular frequency
+        alpha_0 (complex): Initial coherent state
+        beta (complex): Lattice displacement
+        resolution (int): Number of points to sample
+        error (float): Coherent state amplitude must be above this value to
+                        contribute to the probability at point x
+
+    Return:
+        ndarray: 2xresolution array of [x, prob] pairs
+    """
+
+    # Get array of positions to sample
+    x = len(state)*beta.real*np.arange(resolution)/resolution - alpha_0.real
+
+    up_state, p_up= condition_subsystem(state, [1,0])
+    down_state, p_down = condition_subsystem(state, [0,1])
+
+    # Build vector of \psi^{alpha_n}(x)
+    n_vector = np.arange(len(state)) - (len(state) - 1)/2
+    alpha_vector = alpha_0 + n_vector*beta
+
+    mesh_alpha, mesh_x = np.meshgrid(x, alpha_vector)
+
+    mw = mass * omega
+    N = (mw  / np.pi)**0.25
+    sigma = np.sqrt(2/mw)
+    simga_2 = 2/mw
+    coherent_xn = N * np.exp(-(mesh_x - sigma*mesh_alpha)**2/sigma_2)
+
+    # Take outer product of that vector with itself
+    coherent_xnm = np.repeat(coherent_xnm[:,:,np.newaxis], len(state), axis=3)
+    coherent_xnm = np.multiply(coherent_xnm,
+                               np.swapaxes(coherent_xnm,1,2).conj())
+
+    # Do tensor double contraction (np.tensordot(a,b,2)) of that matrix with
+    # density matrix
+
+    up_state_stack = np.repeat(up_state[:,:,np.newaxis], resolution, axis=3)
+    down_state_stack = np.repeat(down_state[:,:,np.newaxis], resolution, axis=3)
+
+    P_x = (p_up*np.tensordot(coherent_xnm, up_state_stack)
+            + p_down*np.tensordot(coherent_xnm, down_state_stack))
+
+    return P_x
