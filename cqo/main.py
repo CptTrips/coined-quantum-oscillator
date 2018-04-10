@@ -17,9 +17,14 @@ def main():
     """
 
     # OPTIONS !!! PUT THESE IN A CFG/TURN THESE INTO ARGUMENTS !!!
-    N = 1
-    LAMBDA = 0.1
-    SIM_DURATION = 25
+    N = 2
+    mass = 1
+    omega = 1
+    Lambda = 0.05
+    alpha_0 = 0
+    SIM_DURATION = 20
+    resolution = 20*SIM_DURATION
+    error = 0.01
     Haddamard = (1/np.sqrt(2))*np.array([
         [1, 1],
         [1, -1]
@@ -38,9 +43,10 @@ def main():
     final_state = simulate.simulate(COIN_OP, SIM_DURATION)
 
     # Calculate spatial pdf from final state
+    P_x, x = simulate.spatial_pdf(final_state, mass, omega, alpha_0, Lambda, resolution, error)
 
     # Output
-    output.output(final_state)
+    output.output(final_state, P_x)
 
 
 # Do not run if imported

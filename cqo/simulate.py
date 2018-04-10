@@ -5,9 +5,9 @@ from algebra import condition_subsystem
 
 def set_up(periods, coin_op):
 
+    #! Validate periods >= 0
+
     # Prepare basis & initial state
-    # Number of position states the particle will access
-    particle_state_count = 2*periods + 1
 
     # Initial spin state
     spin_up_projector = np.array([
@@ -19,8 +19,12 @@ def set_up(periods, coin_op):
     spin_state = spin_up_projector
 
     # Initial particle state
-    particle_vector_state = np.array([0]* periods + [1] + [0] * periods, dtype=np.complex128)
+    particle_vector_state = np.array([0] * (periods+1) + [1] + [0] * (periods+1),
+                                     dtype=np.complex128)
     particle_state = np.outer(particle_vector_state, particle_vector_state)
+
+    # Number of position states the particle will access
+    particle_state_count = len(particle_vector_state)
 
     state = np.kron(spin_state, particle_state)
 
@@ -96,36 +100,40 @@ def spatial_pdf(state, mass, omega, alpha_0, beta, resolution, error):
         ndarray: 2xresolution array of [x, prob] pairs
     """
 
-    # Get array of positions to sample
-    x = len(state)*beta.real*np.arange(resolution)/resolution - alpha_0.real
 
-    up_state, p_up= condition_subsystem(state, [1,0])
+    up_state, p_up = condition_subsystem(state, [1,0])
     down_state, p_down = condition_subsystem(state, [0,1])
 
+    node_count = len(up_state)
+
+    # Get array of positions to sample
+    x = (beta.real*np.linspace(-node_count/2, node_count/2, num=resolution)
+        - alpha_0.real)
+
     # Build vector of \psi^{alpha_n}(x)
-    n_vector = np.arange(len(state)) - (len(state) - 1)/2
+    n_vector = np.arange(node_count) - (node_count - 1)/2
     alpha_vector = alpha_0 + n_vector*beta
 
-    mesh_alpha, mesh_x = np.meshgrid(x, alpha_vector)
+    mesh_x, mesh_alpha = np.meshgrid(x, alpha_vector, indexing='ij')
 
     mw = mass * omega
     N = (mw  / np.pi)**0.25
     sigma = np.sqrt(2/mw)
-    simga_2 = 2/mw
+    sigma_2 = 2/mw
     coherent_xn = N * np.exp(-(mesh_x - sigma*mesh_alpha)**2/sigma_2)
 
     # Take outer product of that vector with itself
-    coherent_xnm = np.repeat(coherent_xnm[:,:,np.newaxis], len(state), axis=3)
+    coherent_xnm = np.repeat(coherent_xn[:,:,np.newaxis], node_count, axis=2)
     coherent_xnm = np.multiply(coherent_xnm,
                                np.swapaxes(coherent_xnm,1,2).conj())
 
     # Do tensor double contraction (np.tensordot(a,b,2)) of that matrix with
     # density matrix
 
-    up_state_stack = np.repeat(up_state[:,:,np.newaxis], resolution, axis=3)
-    down_state_stack = np.repeat(down_state[:,:,np.newaxis], resolution, axis=3)
+    up_state_stack = np.repeat(up_state[np.newaxis,:,:], resolution, axis=0)
+    down_state_stack = np.repeat(down_state[np.newaxis,:,:], resolution, axis=0)
 
-    P_x = (p_up*np.tensordot(coherent_xnm, up_state_stack)
-            + p_down*np.tensordot(coherent_xnm, down_state_stack))
+    P_x = (p_up*np.einsum('nij,nji->n', coherent_xnm, up_state_stack)
+            + p_down*np.einsum('nij,nji->n', coherent_xnm, down_state_stack))
 
-    return P_x
+    return P_x, x

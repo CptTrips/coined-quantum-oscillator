@@ -74,7 +74,10 @@ def condition_subsystem(O, subsystem_vector):
 
     # Normalise
     p = np.trace(O_A)
-    O_A = O_A / np.trace(O_A)
+    if p>0:
+        O_A = O_A / p
+    else:
+        O_A = np.zeros(O_A.shape)
 
     return O_A, p
 
