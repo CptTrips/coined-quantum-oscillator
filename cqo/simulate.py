@@ -39,18 +39,13 @@ def set_up(periods, coin_op):
         raise ValueError("Coin operator is not unitary")
 
     # Initial spin state
-    spin_up_projector = np.array([
-        [1, 0],
-        [0, 0]
-    ], dtype=np.complex128)
-    spin_down_projector = np.eye(2) - spin_up_projector
+    spin_up_projector = algebra.projector(2,0)
+    spin_down_projector = algebra.projector(2,1)
 
     spin_state = spin_up_projector
 
     # Initial particle state
-    particle_vector_state = np.array([0] * (periods+1) + [1] + [0] * (periods+1),
-                                     dtype=np.complex128)
-    particle_state = np.outer(particle_vector_state, particle_vector_state)
+    particle_state = algebra.projector(2*(periods+1)+1, periods+1)
 
     # Number of position states the particle will access
     particle_state_count = len(particle_vector_state)
@@ -89,6 +84,10 @@ def decohere(state, gamma):
     Returns:
         nxn ndarray: State after decoherence
     """
+
+    # Validate gamma >= 0
+    if gamma < 0:
+        raise ValueError("Decoherence rate must be positive")
 
     # Build decay matrix and apply element-wise to state
     site_idx = np.arange(len(state)/2)
@@ -161,6 +160,17 @@ def spatial_pdf(state, mass, omega, alpha_0, beta, resolution, error):
         ndarray: 2xresolution array of [x, prob] pairs
     """
 
+    ## Validation
+
+    # mass > 0
+    if mass <= 0:
+        raise ValueError("Mass must be positive")
+
+    if omega <=0:
+        raise ValueError("Frequency must be positive")
+
+    if error < 0:
+        raise ValueError("Error margin must be positive")
 
     up_state, p_up = condition_subsystem(state, [1,0])
     down_state, p_down = condition_subsystem(state, [0,1])
@@ -190,7 +200,6 @@ def spatial_pdf(state, mass, omega, alpha_0, beta, resolution, error):
 
     # Do tensor double contraction (np.tensordot(a,b,2)) of that matrix with
     # density matrix
-
     up_state_stack = np.repeat(up_state[np.newaxis,:,:], resolution, axis=0)
     down_state_stack = np.repeat(down_state[np.newaxis,:,:], resolution, axis=0)
 

@@ -1,9 +1,42 @@
 import numpy as np
 
 
-# Hermitian Conjugate
 def H(A):
+    """Outputs the Hermitian conjugate of A"""
     return A.conj().T
+
+
+def projector(dim, i):
+    """Builds the projection operator on to the ith eigenvector of a dimension
+    dim operator.
+
+    Args:
+        dim (int): Dimension of the Hilbert space
+        i (int): Eigenvector to project on to
+
+    Returns:
+        dimxdim ndarray: Projector onto ith eignenvector
+
+    """
+
+    # Validate dim, i positive
+    if i < 0:
+        raise ValueError("Eigenvector label must be positive")
+
+    if dim < 1:
+        raise ValueError("Hilbert space dimension must be > 0")
+
+    # Validate i < dim
+    if i >= dim:
+        raise ValueError("Eigenvector label must be less than dimension - 1")
+
+    # ith eigenvector
+    eigenvector = np.zeros(dim, dtype=np.complex128)
+    eigenvector[i] = 1
+
+    projector = np.outer(eigenvector, eigenvector)
+
+    return projector
 
 def tensor_swap(O, dim_A):
     """Swaps kron(A,B) with kron(B,A)
@@ -63,7 +96,7 @@ def condition_subsystem(O, subsystem_vector):
 
     # Validate n mod m = 0
     if np.mod(len(O), len(subsystem_vector)) != 0:
-        raise MathError(('{0}x{0} operator cannot be conditioned by '
+        raise ValueError(('{0}x{0} operator cannot be conditioned by '
                          '{1}D vector').format(len(O), len(subsystem_vector)))
 
     dim_A = int(len(O) / len(subsystem_vector))
