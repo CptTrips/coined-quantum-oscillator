@@ -47,7 +47,34 @@ def set_up(periods, coin_op):
     return state, full_coin_op, shift_ops
 
 
-def quantum_walk(state, coin_op, shift_ops, periods):
+def decohere(state, gamma):
+    """Applies spatial decoherence in the coherent state basis.
+
+    Off-diagonal elements of the state will decay exponentially in the site
+    distance between states.
+
+    Args:
+        state (nxn ndarray): State before decoherence
+        gamma (float): Decoherence rate
+
+    Return:
+        nxn ndarray: State after decoherence
+    """
+
+    # Build decay matrix and apply element-wise to state
+    site_idx = np.arange(len(state)/2)
+    site_idx_i, site_idx_j = np.meshgrid(site_idx, site_idx.T)
+    site_diff = site_idx_i - site_idx_j
+
+    decay = np.exp(-(gamma/2) * site_diff**2)
+
+    decay_full = np.kron(np.ones((2,2)), decay)
+
+    final_state = decay_full * state
+
+    return final_state
+
+def quantum_walk(state, coin_op, shift_ops, periods, gamma):
     """Calculates the state of a harmonic oscillator undergoing a quantum walk protocol.
 
     Args:
@@ -55,6 +82,7 @@ def quantum_walk(state, coin_op, shift_ops, periods):
         coin_op (nxn ndarray): Coin operator
         shift_ops (2xnxn ndarray): Shift operators
         periods (int): Number of oscillator periods to apply the walk protocol for.
+        gamma (float): Decoherence rate
 
     Return:
         nxn ndarray: Final state of the walker
@@ -71,14 +99,18 @@ def quantum_walk(state, coin_op, shift_ops, periods):
             # apply shift j
             state = shift_ops[j] @ state @ H(shift_ops[j])
 
+            # apply decoherence
+            if gamma > 0:
+                state = decohere(state, gamma)
+
     return state
 
 
-def simulate(coin_op, periods):
+def simulate(coin_op, periods, gamma):
 
     initial_state, full_coin_op, shift_ops = set_up(periods, coin_op)
 
-    final_state = quantum_walk(initial_state, full_coin_op, shift_ops, periods)
+    final_state = quantum_walk(initial_state, full_coin_op, shift_ops, periods, gamma)
 
     return final_state
 

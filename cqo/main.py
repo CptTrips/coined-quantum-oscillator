@@ -17,14 +17,19 @@ def main():
     """
 
     # OPTIONS !!! PUT THESE IN A CFG/TURN THESE INTO ARGUMENTS !!!
+
     N = 2
+    SIM_DURATION = 20
+
     mass = 1
     omega = 1
     Lambda = 0.05
     alpha_0 = 0
-    SIM_DURATION = 20
+    gamma = 5
+
     resolution = 20*SIM_DURATION
     error = 0.01
+
     Haddamard = (1/np.sqrt(2))*np.array([
         [1, 1],
         [1, -1]
@@ -40,7 +45,7 @@ def main():
     COIN_OP = balanced_flip
 
     # Calculate state after quantum walk
-    final_state = simulate.simulate(COIN_OP, SIM_DURATION)
+    final_state = simulate.simulate(COIN_OP, SIM_DURATION, gamma)
 
     # Calculate spatial pdf from final state
     P_x, x = simulate.spatial_pdf(final_state, mass, omega, alpha_0, Lambda, resolution, error)
