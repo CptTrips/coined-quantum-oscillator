@@ -4,10 +4,39 @@ from algebra import condition_subsystem
 
 
 def set_up(periods, coin_op):
+    """Initialise the quantum walk simulation.
 
-    #! Validate periods >= 0
+    Prepares initial state and operators used in the quantum walk.
 
-    # Prepare basis & initial state
+    Args:
+        periods (int): Number of periods the quantum walk should last (2 steps per period).
+        coin_op (2x2 ndarray): Coin operation to be used.
+
+    Returns:
+        tuple: 3-tuple:
+            state (ndarray): Spin-particle initial state
+            full_coin_op (ndarray): Coin operator expanded to full Hilbert
+                                    space
+            shift_ops (ndarray): Particle shift operators expanded to full
+                                 Hilbert space
+
+    Raises:
+        ValueError: If periods < 0
+    """
+
+    # Validation
+
+    ## periods >= 0
+    if periods < 0:
+        raise ValueError("periods < 0")
+
+    ## coin_op is 2x2
+    if coin_op.shape != (2,2):
+        raise ValueError("Coin operator is not 2x2")
+
+    ## coin_op is unitary
+    if not(np.allclose(coin_op @ H(coin_op), np.eye(2))):
+        raise ValueError("Coin operator is not unitary")
 
     # Initial spin state
     spin_up_projector = np.array([
@@ -57,7 +86,7 @@ def decohere(state, gamma):
         state (nxn ndarray): State before decoherence
         gamma (float): Decoherence rate
 
-    Return:
+    Returns:
         nxn ndarray: State after decoherence
     """
 
@@ -84,7 +113,7 @@ def quantum_walk(state, coin_op, shift_ops, periods, gamma):
         periods (int): Number of oscillator periods to apply the walk protocol for.
         gamma (float): Decoherence rate
 
-    Return:
+    Returns:
         nxn ndarray: Final state of the walker
     """
 
@@ -128,7 +157,7 @@ def spatial_pdf(state, mass, omega, alpha_0, beta, resolution, error):
         error (float): Coherent state amplitude must be above this value to
                         contribute to the probability at point x
 
-    Return:
+    Returns:
         ndarray: 2xresolution array of [x, prob] pairs
     """
 
