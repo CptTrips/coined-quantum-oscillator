@@ -69,6 +69,10 @@ def tensor_swap(O, dim_A):
 
             O_swapped[:, new_col] = O[:, col]
 
+    if np.mod(len(O), dim_A) != 0
+         raise ValueError(("Dimension {0} operator cannot be factored by "
+                           "dimension {1} subsystem").format(len(O), dim_A))
+
     dim_B = int(len(O) / dim_A)
 
     O_cols = swap_cols(O, dim_A)
@@ -91,7 +95,7 @@ def condition_subsystem(O, subsystem_vector):
         subsystem_vector (mx1 ndarray): Vector to condition on
 
     Returns:
-        n/mxn/m ndarray: O conditioned on subsystem_vector
+        (n/m)x(n/m) ndarray: O conditioned on subsystem_vector
     """
 
     # Validate n mod m = 0
