@@ -6,7 +6,7 @@ class TestDecohere(unittest.TestCase):
 
     # gamma=0 is identity
     def test_no_decoherence(self):
-        state = np.random.randn((10,10))
+        state = np.random.randn(10,10)
 
         final_state = decohere(state, 0)
 

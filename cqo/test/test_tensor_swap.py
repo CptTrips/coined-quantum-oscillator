@@ -6,8 +6,10 @@ class TestTensorSwap(unittest.TestCase):
 
     # Test non-factoring dim_A
     def test_non_factoring_dim_A(self):
+
         O = np.eye(5)
-        self.assertRaises(ValueError, tensor_swap. O, 2)
+
+        self.assertRaises(ValueError, tensor_swap, O, 2)
 
     # Test kron'd example
     def test_tensor_product(self):
@@ -44,5 +46,11 @@ class TestTensorSwap(unittest.TestCase):
     def test_non_square_O(self):
 
         O = np.ones((4,6))
+
+        self.assertRaises(ValueError, tensor_swap, O, 2)
+
+    def test_non_rank_2(self):
+
+        O = np.ones((4,4,4))
 
         self.assertRaises(ValueError, tensor_swap, O, 2)

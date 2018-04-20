@@ -53,15 +53,19 @@ def tensor_swap(O, dim_A):
         """ Swaps columns from A major to B major
         """
 
+        if np.mod(dim_A, 1) != 0:
+            raise ValueError("Dimension of A must be an integer")
+
+
         dim_B = int(len(O) / dim_A)
 
-        O_swapped = np.zeros(size(O))
+        O_swapped = np.zeros(O.shape)
 
         # Sort columns
         for col in range(len(O)):
 
             # Find A index
-            A_idx = np.floor((col)/dim_B)
+            A_idx = int(np.floor((col)/dim_B))
             # Find B index
             B_idx = np.mod(col, dim_B)
 
@@ -69,9 +73,20 @@ def tensor_swap(O, dim_A):
 
             O_swapped[:, new_col] = O[:, col]
 
-    if np.mod(len(O), dim_A) != 0
+        return O_swapped
+
+    if np.mod(len(O), dim_A) != 0:
          raise ValueError(("Dimension {0} operator cannot be factored by "
                            "dimension {1} subsystem").format(len(O), dim_A))
+
+    if (len(O) == dim_A):
+        raise ValueError("Cannot swap when subsystem dimension == full operator dimension")
+
+    if len(O.shape) != 2:
+        raise ValueError("Can only swap rank 2 matrices")
+
+    if O.shape[0] != O.shape[1]:
+        raise ValueError("Can only swap square matrices")
 
     dim_B = int(len(O) / dim_A)
 
@@ -109,6 +124,15 @@ def condition_subsystem(O, subsystem_vector):
 
     O_A = condition_matrix @ O @ H(condition_matrix)
 
+    return O_A
+
+
+def postselect(O, vector):
+
+    # Throw warning if O not valid density matrix
+
+    O_A = condition_subsystem(O, vector)
+
     # Normalise
     p = np.trace(O_A)
     if p>0:
@@ -117,6 +141,7 @@ def condition_subsystem(O, subsystem_vector):
         O_A = np.zeros(O_A.shape)
 
     return O_A, p
+
 
 
 def partial_trace(O, dim_A):
@@ -135,26 +160,30 @@ def partial_trace(O, dim_A):
 
     # Validate dim(O) mod dim_A = 0
     if np.mod(len(O), dim_A) != 0:
-        raise MathError(('No valid decomposition of {0}D Hilbert space by '
+        raise ValueError(('No valid decomposition of {0}D Hilbert space by '
                         ' {1}D subspace.').format(len(O), dim_A))
 
     # Validate dim_A != 0
     if dim_A == 0:
-        raise MathError('Partial trace undefined for |A| = 0')
+        raise ValueError('Partial trace undefined for |A| = 0')
+
+    if dim_A == len(O) or dim_A == 1:
+        raise ValueError('Subsystem dimension cannot equal full system'
+                         ' dimension or equal 1')
 
     dim_B = int(len(O) / dim_A)
-
-    I_B = np.eye(dim_B)
 
     # Initialise reduced operator
     O_A = np.zeros((dim_A, dim_A), dtype=np.complex128)
 
     for i in range(dim_B):
-        projector_i = np.zeros(dim_B)
-        projector_i[i] = 1
 
+        vector_i = np.zeros(dim_B)
+        vector_i[i] = 1
 
-        O_A += condition_subsystem(O, projector_i)
+        O_i = condition_subsystem(O, vector_i)
+
+        O_A += O_i
 
     return O_A
 

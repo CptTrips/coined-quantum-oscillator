@@ -28,8 +28,10 @@ class TestPartialTrace(unittest.TestCase):
         I = np.eye(2)
         X = np.array([[0,1],[1,0]])
 
-        O = np.kron(I, projector(2, 0)) + np.kron(X, projector(2,1))
+        O = np.kron(projector(2,0), I) + np.kron(projector(2,1), X)
 
         IplusX = np.ones((2,2))
 
-        self.assertTrue(np.all(partial_trace(O, 2) == IplusX))
+        O_trB = partial_trace(O, 2)
+
+        self.assertTrue(np.all(O_trB == IplusX))

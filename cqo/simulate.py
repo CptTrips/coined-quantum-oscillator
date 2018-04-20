@@ -1,6 +1,6 @@
 import numpy as np
-from algebra import H
-from algebra import condition_subsystem
+import algebra
+from algebra import H, condition_subsystem, postselect
 
 
 def set_up(periods, coin_op):
@@ -48,7 +48,7 @@ def set_up(periods, coin_op):
     particle_state = algebra.projector(2*(periods+1)+1, periods+1)
 
     # Number of position states the particle will access
-    particle_state_count = len(particle_vector_state)
+    particle_state_count = len(particle_state)
 
     state = np.kron(spin_state, particle_state)
 
@@ -172,8 +172,8 @@ def spatial_pdf(state, mass, omega, alpha_0, beta, resolution, error):
     if error < 0:
         raise ValueError("Error margin must be positive")
 
-    up_state, p_up = condition_subsystem(state, [1,0])
-    down_state, p_down = condition_subsystem(state, [0,1])
+    up_state, p_up = postselect(state, [1,0])
+    down_state, p_down = postselect(state, [0,1])
 
     node_count = len(up_state)
 
