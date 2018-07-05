@@ -1,4 +1,5 @@
 import numpy as np
+from itertools import combinations
 
 
 def H(A):
@@ -187,4 +188,35 @@ def partial_trace(O, dim_A):
 
     return O_A
 
+def binary_combinations(N, S):
+    """Returns all binary strings of length N whose bits sum to S
+    """
 
+    if S > N:
+        raise ValueError("Sum cannot be larger than number of bits")
+
+    if S == 0:
+        return np.array([np.zeros((N,), dtype=np.int)])
+
+    # List all the ways you can choose S numbers from 0 to N-1
+
+    c = np.array([i for i in combinations(range(N), S)],
+                 dtype=np.int) # Could use np.choose
+
+    # Create an array of N by N choose S zeros
+
+    bc = np.zeros((len(c), N), dtype=np.int)
+
+    # set the array of zeroes to 1, addressed by the list of combinations
+
+    # add a dimension to c which labels the outer index
+
+    i = np.tile(np.arange(len(c)), (S,1)).T
+
+    i = i.reshape((S*len(c), ))
+
+    c = c.reshape((S*len(c), ))
+
+    bc[i, c] = 1
+
+    return bc
