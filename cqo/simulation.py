@@ -190,7 +190,9 @@ class CoherentState:
         self.m_omega = m_omega
         self.N = pow(m_omega / (units.hbar * np.pi), 0.25)
 
-        self.sigma = np.sqrt(m_omega/(2*units.hbar))
+        self.sigma = np.sqrt((2*units.hbar)/m_omega)
+
+        self.width = self.sigma / 2
 
     def sample(self, x, x_):
 
@@ -204,7 +206,9 @@ class CoherentState:
 
         a = self.alpha
 
-        return self.N * np.exp(-mw/(2*h)*(x - pow(2*h/mw, 0.5)*a.real)**2 + 1j*pow(2*mw/h, 0.5)*a.imag*x)
+        w = self.sigma
+
+        return self.N * np.exp(-(1/w**2)*(x - w*a.real)**2 + 1j*(2/w)*a.imag*x)
 
 class ThermalState:
 

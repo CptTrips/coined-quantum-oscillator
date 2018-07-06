@@ -11,5 +11,6 @@ def output(x, P_x):
 
     plt.figure()
     plt.plot(x, P_x)
+    plt.axis(ymin=0)
     plt.show()
     #plt.savefig("/home/matthewf/spatial_pdf.png")

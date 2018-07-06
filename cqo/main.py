@@ -20,45 +20,60 @@ def main():
 
     # OPTIONS !!! PUT THESE IN A CFG/TURN THESE INTO ARGUMENTS !!!
 
-    N = 1
+    N = 3 # Walk steps
 
     hbar = units.hbar
 
 
-    # Trap parametrs
+    """
+    Density of diamond: 3.51e3 kg/m^3
+    Nanoparticle radius: ~1e-8m
+    See Pflanzer thesis eq 2.64 for trap frequency
+    """
+    density = 3.51e3
+    radius = 5e-8
 
-    #mass = 3.51e3 * 4/3 * np.pi * (5e-8)**3
-    #omega = 2 * np.pi * 1.5e5
-    mass = 1e-6
+    mass = density * 4/3 * np.pi * radius**3
 
+
+    """
+    Trap frequencies: 0.1-1 Mhz
+    """
     omega = 2 * np.pi * 1.5e5
 
-    spins = 1 # Defect denisties of 2e24 m^-3 reported in Kern et al PRB 2017
+    tscale = (2*np.pi)/omega
 
-    # Interaction strength. Appears in Hamiltonian as hbar*l*S_z*x
-    # (See Scala et al PRL 2013)
-    l = (0.015 * omega * spins) * np.sqrt(2 * mass * omega / hbar)
+    lscale = np.sqrt(hbar / (2 * mass * omega))
+
+    """
+    Interaction strength: 0.015 * omega
+    Appears in Hamiltonian as hbar*l*S_z*x
+    (See Scala et al PRL 2013 for numeric value of 0.015)
+    """
+    l = (0.015 * 6e6) / lscale
 
     alpha = 2 * (2 / (mass * omega**2)) * hbar * l
 
     alpha_0 = 0
 
 
-    # Decoherence paramters
+    """
+    Decoherence rate: 1e4 /s. See Romero-Isart PRA 2011 eq. 10
+    off-diagonals decay as exp(-gamma*T*(x-x`)^2)
+    """
+    Gamma_sc = 1e4 * radius**2 / (5e-8)**2
 
-    Gamma_sc = 1e4 # scattering events s^-1. See Romero-Isart PRA 2011 eq. 10
+    gamma = Gamma_sc / lscale**2
 
-    # off-diagonals decay as exp(-gamma*T*(x-x`)^2)
-    gamma = Gamma_sc * (2 * mass * omega / hbar)
-
-    T = omega / (4 * np.pi)
+    T = tscale / 2
 
     gamma_T = gamma * T
 
 
-    # Thermal parameters
-
-    occupancy = 65 # From Photon Recoil paper
+    """
+    Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
+    """
+    occupancy = 0.01
 
     beta = np.log((1/occupancy) + 1)/omega
 
@@ -94,7 +109,11 @@ def main():
 
     spin_state = SpinState(projector(2,0))
 
-    sample_points = np.linspace(-alpha, (N+1)*alpha, (N+3)*resolution)
+    sample_min = -alpha - 2*walk_state.width
+
+    sample_max = (N+1)*alpha + 2*walk_state.width
+
+    sample_points = np.linspace(sample_min, sample_max, (N+3)*resolution)
 
     method = final_state
 
