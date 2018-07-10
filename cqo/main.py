@@ -20,7 +20,7 @@ def main():
 
     # OPTIONS !!! PUT THESE IN A CFG/TURN THESE INTO ARGUMENTS !!!
 
-    N = 3 # Walk steps
+    N = 4 # Walk steps
 
     hbar = units.hbar
 
@@ -46,11 +46,11 @@ def main():
     lscale = np.sqrt(hbar / (2 * mass * omega))
 
     """
-    Interaction strength: 0.015 * omega
+    Interaction strength: 0.015 * omega (in their paper omega ~ 6e6)
     Appears in Hamiltonian as hbar*l*S_z*x
     (See Scala et al PRL 2013 for numeric value of 0.015)
     """
-    l = (0.015 * 6e6) / lscale
+    l = (0.15 * 6e6) / lscale
 
     alpha = 2 * (2 / (mass * omega**2)) * hbar * l
 
@@ -58,10 +58,10 @@ def main():
 
 
     """
-    Decoherence rate: 1e4 /s. See Romero-Isart PRA 2011 eq. 10
+    Decoherence rate: 2*pi*1.1e4 /s. See Romero-Isart PRA 2011 eq. 10
     off-diagonals decay as exp(-gamma*T*(x-x`)^2)
     """
-    Gamma_sc = 1e4 * radius**2 / (5e-8)**2
+    Gamma_sc = 2 * pi * 1.1e2
 
     gamma = Gamma_sc / lscale**2
 
@@ -73,14 +73,14 @@ def main():
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 0.01
+    occupancy = 0.5 # 0.5, 5, 50
 
     beta = np.log((1/occupancy) + 1)/omega
 
 
     # Simulation paramters
 
-    resolution = 64
+    resolution = 8
 
     error = 5e-4
 
