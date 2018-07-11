@@ -1,6 +1,6 @@
 from matplotlib import pyplot as plt
 import numpy as np
-from algebra import condition_subsystem
+from cqo.algebra import condition_subsystem
 
 
 def output(x, P_x):

@@ -1,7 +1,6 @@
 import numpy as np
-import algebra
-import units
-from algebra import H, condition_subsystem, postselect, binary_combinations
+import cqo.units as units
+from cqo.algebra import H, condition_subsystem, postselect, binary_combinations
 from itertools import product
 
 
@@ -249,12 +248,23 @@ class ThermalState:
 
         self.mw = mass * omega
 
+        self.width = self._width()
+
     def sample(self, x, x_):
 
         B = self.B * np.array([x, x, x_, x_])
 
         return self.N * np.exp(-0.5*self.mw/units.hbar*(x**2 + x_**2) + 0.5 * B.T@self.A_1@B)
 
+    def _width(self):
+
+        w_0 = np.sqrt(units.hbar / self.mw)
+
+        r = self.sample(w_0, w_0) / self.sample(np.sqrt(2)*w_0, np.sqrt(2)*w_0)
+
+        width = 1/(2*np.log(r))
+
+        return width
 
 def final_state_recursive(N, x, x_, s, s_, walk_state,
                           spin_state, coin_amplitudes, alpha, decoherence, eps):

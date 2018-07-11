@@ -2,25 +2,24 @@ from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 from itertools import product
-from simulation import ThermalState
-from units import hbar
+from cqo.simulation import ThermalState
+from cqo.units import hbar
 import numpy as np
 
 # Display a thermal density matrix and show it is normalised to 1
 
 output_folder = '/home/matthewf/PhD/programming/coined-quantum-oscillator/output'
 
-mass = 1e-5#3.51e3 * 4/3 * np.pi * (5e-8)**3
-omega = 1e5#2 * np.pi * 1.5e5
-n = 1
+mass = 3.51e3 * 4/3 * np.pi * (5e-8)**3
+omega =2 * np.pi * 1.5e5
+n = 0.01
 beta = np.log(1 + 1/n) / (omega*hbar)
 
 rho = ThermalState(beta, omega, mass)
 
-limit = 3*mass*omega*beta
+limit = 1*rho.width
 
-import pdb; pdb.set_trace()
-
+print(rho.sample(rho.width,rho.width))
 
 N = 5
 
@@ -51,7 +50,9 @@ surf = ax.plot_surface(X, Y, np.abs(density_matrix), cmap=cm.coolwarm, linewidth
                        antialiased=False)
 
 fig.colorbar(surf, shrink=0.5, aspect=5)
+plt.title('\\rho(x,x\')')
 
 fig2 = plt.figure()
 plt.plot(fidelity, normalisation)
+plt.title('Norm vs resolution');
 plt.show()
