@@ -3,7 +3,7 @@ import numpy as np
 from cqo.algebra import condition_subsystem
 
 
-def output(x, P_walk, P_final):
+def output(x, P_walk, x_final, P_final):
 
     #! Create folder with time & date and key params
 
@@ -15,7 +15,7 @@ def output(x, P_walk, P_final):
     plt.title("Walk pdf")
 
     plt.figure()
-    plt.plot(x, P_final)
+    plt.plot(x_final, P_final)
     plt.axis(ymin=0)
     plt.title("Final pdf")
 

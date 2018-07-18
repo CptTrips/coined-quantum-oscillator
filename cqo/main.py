@@ -87,7 +87,7 @@ def main():
 
     # Simulation paramters
 
-    resolution = 8
+    resolution = 10
 
     error = 1e-2
 
@@ -143,21 +143,20 @@ def main():
 
     # Evolve under free-flight
 
-    t_free = 1 / omega
+    t_free = 6.4 / omega
 
     rho_final = np.zeros(rho_walk.shape)
 
     for s, s_ in zip([0,1],[0,1]):
-        rho_s_s_ = expansion_protocol(rho_walk[:,:,s,s_], sample_points, mass, omega, t_free)
+        rho_s_s_, coords_final = expansion_protocol(rho_walk[:,:,s,s_], sample_points, mass, omega, t_free)
         rho_final[:,:,s,s_] = rho_s_s_
-        pass
 
     final_pdf = np.diag(rho_final[:,:,0,0] + rho_final[:,:,1,1])
 
 
     ### Output ###
 
-    output.output(sample_points, walk_pdf, final_pdf)
+    output.output(sample_points, walk_pdf, coords_final, final_pdf)
 
 
 # Do not run if imported

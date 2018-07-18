@@ -320,12 +320,24 @@ def expansion_protocol(rho, coords, m, omega, t, debug=False):
 
     rho_p, p = quarter_period(rho, x, m, omega)
 
+    # Scale and translate the output coordinates
+
+    v_min = p[-1,-1,0] / m
+    v_max = p[0,0,0] / m
+
+    x_max = coords.max() + v_max * t
+    x_min = coords.min() +  v_min * t
+
+    print("({},{}) = ({},{}) + ({},{}) * {}".format(x_min,x_max,coords.min(),coords.max(),v_min,v_max,t))
+
+    coords_out = np.linspace(x_min, x_max, len(coords))
+
     # Convolution
     rho_out = np.array([[
         integrate(kernel(np.array([x, x_]), p, m , t, debug) * rho_p, p)
-    for x in coords] for x_ in coords])
+    for x in coords_out] for x_ in coords_out])
 
-    return rho_out
+    return rho_out, coords_out
 
 def integrate(f, x):
     """Integrate f(x)
@@ -347,7 +359,7 @@ def quarter_period(rho, x, m, omega):
         x (nxn ndarray): Co-ordinates associated with the density matrix values
 
     Returns:
-        (nxn ndarray, nxn ndarray): Density matrix values in momentum space
+        (nxn ndarray, nxnx2 ndarray): Density matrix values in momentum space
         after a quarter period, associated momentum space co-ordinates
     """
 
