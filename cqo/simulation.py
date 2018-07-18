@@ -295,3 +295,101 @@ def final_state_recursive(N, x, x_, s, s_, walk_state,
     else:
         return (walk_state.sample(x, x_) * spin_state.sample(s, s_)
                 * np.exp(-decoherence*(x-x_)**2))
+
+def expansion_protocol(rho, coords, m, omega, t, debug=False):
+
+    # Might have to evenly space the input
+
+    # Move to momentum space
+    x = np.array([[[x,x_] for x_ in coords] for x in coords])
+
+    rho_p, p = quarter_period(rho, x, m, omega)
+
+    # Convolution
+    rho_out = np.array([[
+        integrate(kernel(np.array([x, x_]), p, m , t, debug) * rho_p, p)
+    for x in coords] for x_ in coords])
+
+    return rho_out
+
+def integrate(f, x):
+    """Integrate f(x)
+    """
+
+    # Assumes evenly spaced input
+    edge = x[0,1] - x[0,0]
+    area = np.dot(edge, edge)
+
+    # Rectangular integration
+    return area * f.sum()
+
+def quarter_period(rho, x, m, omega):
+    """Calculates the p representation of a density matrix from its initial x
+    representation after a quarter period of harmonic oscillator evolution.
+
+    Args:
+        rho (nxn ndarray): Density matrix values
+        x (nxn ndarray): Co-ordinates associated with the density matrix values
+
+    Returns:
+        (nxn ndarray, nxn ndarray): Density matrix values in momentum space
+        after a quarter period, associated momentum space co-ordinates
+    """
+
+    p = -x * m * omega
+    rho_p = rho / m / omega
+
+    return rho_p, p
+
+
+def kernel(x, p, m, t, debug=False):
+    """Builds the convolution kernel for calculating density matrix evolution
+    of a free particle
+
+    Args:
+        x (2x1 ndarray): Output point
+        p (nxnx2 ndarray): Co-ordinates of the density matrix elements
+        m (float): Mass of the particle
+        t (float): Time of flight
+
+    Returns:
+        nxn ndarray: Convolution kernel
+    """
+
+    # Compute prefactor
+    d2_x = x[0]**2 - x[1]**2
+
+    prefactor = np.exp(1j*m/t/units.hbar/2*(d2_x))
+
+    # Compute p-dependent part
+    d = p - m/t*x
+
+    A = 1j*t/(2*m*units.hbar)*np.array([[-1,0],[0,1]])
+
+    dAd = np.array([[d_vec.T @ A @ d_vec for d_vec in d_array] for d_array in d])
+
+    k = prefactor*np.exp(dAd)
+
+    if (debug):
+
+        print("m: {}\nt: {}\nx: {}\np(8,8): {}".format(m,t,x,p[8,8]))
+
+        from matplotlib import pyplot as plt
+        from mpl_toolkits.mplot3d import Axes3D
+
+        plt.figure()
+        plt.pcolor(dAd.imag)
+        plt.colorbar()
+        plt.title("dAd")
+
+        plt.figure()
+        plt.subplot(2,1,1)
+        plt.imshow(k.imag / k.imag.max())
+        plt.subplot(2,1,2)
+        plt.imshow(k.real / k.real.max())
+
+        import pdb; pdb.set_trace()
+
+        plt.show()
+
+    return k
