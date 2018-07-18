@@ -3,14 +3,21 @@ import numpy as np
 from cqo.algebra import condition_subsystem
 
 
-def output(x, P_x):
+def output(x, P_walk, P_final):
 
     #! Create folder with time & date and key params
 
     #! Output graphical representation of final state
 
     plt.figure()
-    plt.plot(x, P_x)
+    plt.plot(x, P_walk)
     plt.axis(ymin=0)
+    plt.title("Walk pdf")
+
+    plt.figure()
+    plt.plot(x, P_final)
+    plt.axis(ymin=0)
+    plt.title("Final pdf")
+
     plt.show()
     #plt.savefig("/home/matthewf/spatial_pdf.png")

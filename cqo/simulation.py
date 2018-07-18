@@ -297,6 +297,21 @@ def final_state_recursive(N, x, x_, s, s_, walk_state,
                 * np.exp(-decoherence*(x-x_)**2))
 
 def expansion_protocol(rho, coords, m, omega, t, debug=False):
+    """Calculates the position state of a particle which evolves under a
+    harmonic potential for a quarter period and is then released for a
+    specified time.
+
+    Args:
+        rho (nxn ndarray): Initial position state of the particle
+        coords (n ndarray): Position co-ordinates for each entry in rho
+        m (float): Mass of the particle
+        omega (float): Harmonic potential frequency
+        t (float): Free flight time
+
+    Return:
+        nxn ndarray: Position state of the particle after the expansion
+                     protocol
+    """
 
     # Might have to evenly space the input
 

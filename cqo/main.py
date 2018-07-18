@@ -1,5 +1,10 @@
 import numpy as np
-from simulation import final_state, CoherentState, SpinState, ThermalState, final_state_recursive
+from simulation import (final_state,
+                        CoherentState,
+                        SpinState,
+                        ThermalState,
+                        final_state_recursive,
+                        expansion_protocol)
 from algebra import projector
 import units
 import output
@@ -20,7 +25,10 @@ def main():
 
     # OPTIONS !!! PUT THESE IN A CFG/TURN THESE INTO ARGUMENTS !!!
 
-    N = 2 # Walk steps
+
+    ### Parameters ###
+
+    N = 1 # Walk steps
 
     hbar = units.hbar
 
@@ -50,7 +58,7 @@ def main():
     Appears in Hamiltonian as hbar*l*S_z*x
     (See Scala et al PRL 2013 for numeric value of 0.015)
     """
-    l = (0.03 * 6e6) / lscale
+    l = (0.06 * 6e6) / lscale
 
     alpha = 2 * (2 / (mass * omega**2)) * hbar * l
 
@@ -73,17 +81,15 @@ def main():
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 0.5 # 0.5, 5, 50
+    occupancy = 1 # 0.5, 5, 50
 
     beta = np.log((1/occupancy) + 1)/omega
 
-
     # Simulation paramters
 
-    resolution = 16
+    resolution = 8
 
     error = 1e-2
-
 
     # Coin operators
 
@@ -100,7 +106,7 @@ def main():
     identity = np.eye(2)
 
 
-    # Initialisation
+    ### Initialisation ###
 
     COIN_OP = balanced_flip
 
@@ -118,13 +124,13 @@ def main():
     method = final_state
 
 
-    # Simulation
+    ### Simulation ###
 
     element = lambda x, x_, s, s_: method(N, x, x_, s, s_, walk_state,
                                           spin_state, COIN_OP, alpha, gamma_T,
                                           error)
 
-    rho_final = np.array([
+    rho_walk = np.array([
     [
         [
             [
@@ -133,11 +139,25 @@ def main():
         ] for x_ in sample_points
     ] for x in sample_points])
 
+    walk_pdf = np.diag(rho_walk[:,:,0,0] + rho_walk[:,:,1,1])
+
+    # Evolve under free-flight
+
+    t_free = 1 / omega
+
+    rho_final = np.zeros(rho_walk.shape)
+
+    for s, s_ in zip([0,1],[0,1]):
+        rho_s_s_ = expansion_protocol(rho_walk[:,:,s,s_], sample_points, mass, omega, t_free)
+        rho_final[:,:,s,s_] = rho_s_s_
+        pass
+
     final_pdf = np.diag(rho_final[:,:,0,0] + rho_final[:,:,1,1])
 
-    # Output
 
-    output.output(sample_points, final_pdf)
+    ### Output ###
+
+    output.output(sample_points, walk_pdf, final_pdf)
 
 
 # Do not run if imported
