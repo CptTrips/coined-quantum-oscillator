@@ -225,11 +225,7 @@ class ThermalState:
             [0, 0, 0, 1/2]])
         A = A + A.T
 
-        # Check A is positive definite
-        eigenvalues = np.linalg.eigvalsh(A)
-
-        if min(eigenvalues) <= 0:
-            raise ValueError('A must be positive definite')
+        self.A = A
 
         self.A_1 = np.linalg.inv(A)
 
@@ -258,13 +254,39 @@ class ThermalState:
 
     def _width(self):
 
-        w_0 = np.sqrt(units.hbar / self.mw)
+        # Find the HWHM
+        H = self.sample(0,0)
 
-        r = self.sample(w_0, w_0) / self.sample(np.sqrt(2)*w_0, np.sqrt(2)*w_0)
+        w_min = 0
+        w_max = np.sqrt(units.hbar / self.mw)
 
-        width = 1/(2*np.log(r))
+        r = self.sample(w_max, w_max) / H
 
-        return width
+        while r > 0.5:
+
+            w_min = w_max
+
+            w_max *= 2
+
+            r = self.sample(w_max, w_max) / H
+
+        error = 1e-3
+
+        while abs(r - 0.5) > error:
+
+            w = 0.5 * (w_min + w_max)
+
+            r = self.sample(w, w) / H
+
+            if r > 0.5:
+                # w too small
+                w_min = w
+
+            elif r < 0.5:
+                # w too large
+                w_max = w
+
+        return w
 
 def final_state_recursive(N, x, x_, s, s_, walk_state,
                           spin_state, coin_amplitudes, alpha, decoherence, eps):

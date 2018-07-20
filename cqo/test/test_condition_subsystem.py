@@ -29,7 +29,6 @@ class TestConditionSubsystem(unittest.TestCase):
 
         self.assertTrue(np.all((O_A_0 == state_0) * (O_A_1 == state_1)))
 
-
     # Check they factor or raises
     def test_non_factoring(self):
 

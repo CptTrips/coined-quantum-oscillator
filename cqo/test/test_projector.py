@@ -31,7 +31,6 @@ class TestProjector(unittest.TestCase):
 
                 self.assertTrue(np.all(P[i] @ P[j] == np.zeros((self.dim, self.dim))))
 
-
     # Test sum_P P = I
     def test_sum_P_is_I(self):
 

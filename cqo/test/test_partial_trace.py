@@ -5,7 +5,6 @@ import numpy as np
 
 class TestPartialTrace(unittest.TestCase):
 
-    
     # Raise if they don't factor (also excluding dim_A = {1, len(O))
     def test_factor(self):
 
