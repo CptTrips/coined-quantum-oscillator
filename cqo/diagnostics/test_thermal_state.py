@@ -11,24 +11,26 @@ import numpy as np
 output_folder = '/home/matthewf/PhD/programming/coined-quantum-oscillator/output'
 
 mass = 3.51e3 * 4/3 * np.pi * (5e-8)**3
-omega =2 * np.pi * 1.5e5
-n = 0.01
+omega = 2 * np.pi * 1.5e5
+n = 10
 beta = np.log(1 + 1/n) / (omega*hbar)
 
 rho = ThermalState(beta, omega, mass)
 
-limit = 1*rho.width
+print(rho.sample(0,0) / rho.sample(rho.width, rho.width))
 
-print(rho.sample(rho.width,rho.width))
+limit = 3*rho.width
 
-N = 5
+N = 4
 
 fidelity = np.zeros((N,))
 normalisation = np.zeros((N,))
 
 for i in range(1,N):
 
-    x_array = np.linspace(-limit, limit, (2**i))
+    res = 16 * 2**i
+
+    x_array = np.linspace(-limit, limit, res)
 
     width = x_array[1] - x_array[0]
 
@@ -38,21 +40,25 @@ for i in range(1,N):
 
     normalisation[i] = width*sum(pdf)
 
+    density_matrix = np.array([[rho.sample(x, x_) for x in x_array] for x_ in x_array])
 
-density_matrix = np.array([[rho.sample(x, x_) for x in x_array] for x_ in x_array])
+    X, Y = np.meshgrid(x_array, x_array)
 
-fig = plt.figure()
-ax = fig.gca(projection='3d')
+    fig = plt.figure()
 
-X, Y = np.meshgrid(x_array, x_array)
+    plt.subplot(2,1,1)
+    plt.pcolor(X, Y, np.abs(density_matrix))
+    plt.colorbar()
 
-surf = ax.plot_surface(X, Y, np.abs(density_matrix), cmap=cm.coolwarm, linewidth=0,
-                       antialiased=False)
+    plt.subplot(2,1,2)
+    plt.plot(np.diag(X), np.diag(density_matrix))
 
-fig.colorbar(surf, shrink=0.5, aspect=5)
-plt.title('\\rho(x,x\')')
+    plt.title('\\rho(x,x\')')
+
 
 fig2 = plt.figure()
 plt.plot(fidelity, normalisation)
+plt.ylim(ymin=0)
 plt.title('Norm vs resolution');
+
 plt.show()
