@@ -258,7 +258,7 @@ class ThermalState:
         H = self.sample(0,0)
 
         w_min = 0
-        w_max = np.sqrt(units.hbar / self.mw)
+        w_max = np.sqrt(units.hbar / self.mw) # Lower bound of w
 
         r = self.sample(w_max, w_max) / H
 
@@ -271,6 +271,8 @@ class ThermalState:
             r = self.sample(w_max, w_max) / H
 
         error = 1e-3
+
+        w = w_max
 
         while abs(r - 0.5) > error:
 
