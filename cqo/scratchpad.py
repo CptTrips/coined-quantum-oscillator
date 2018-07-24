@@ -1,55 +1,94 @@
 import numpy as np
 from matplotlib import pyplot as plt
-from cqo.units import hbar
+from cqo.units import hbar, k_B
 from cqo.simulation import ThermalState
 
-m = 1
+def eigenvalues_of_A():
 
-omega = 1
+    m = 1
 
-t_array = np.linspace(0.75,1)
+    omega = 1
 
-def A(t):
+    t_array = np.linspace(0.75,1)
 
-    A = np.array([
-        [3/2, 1j, -t, -1j*t],
-        [0, 1/2, 1j*t, -t],
-        [0, 0, 3/2, -1j],
-        [0, 0, 0, 1/2]])
-    A = A + A.T
+    def A(t):
 
-    return A
+        A = np.array([
+            [3/2, 1j, -t, -1j*t],
+            [0, 1/2, 1j*t, -t],
+            [0, 0, 3/2, -1j],
+            [0, 0, 0, 1/2]])
+        A = A + A.T
 
-evals = np.array([np.linalg.eigvals(A(t)) for t in t_array])
+        return A
 
-plt.figure()
+    evals = np.array([np.linalg.eigvals(A(t)) for t in t_array])
 
-for i in range(4):
-    plt.plot(t_array, evals[:,i])
+    plt.figure()
 
-print(evals[-1,:])
+    for i in range(4):
+        plt.plot(t_array, evals[:,i])
 
-plt.show()
+    print(evals[-1,:])
 
-# Find t which makes A singular
+    plt.show()
 
-t_min = 0.9
+    # Find t which makes A singular
 
-t_max = 1
+    t_min = 0.9
 
-min_e = 1
+    t_max = 1
 
-eps = 1e-15
+    min_e = 1
 
-while abs(min_e.real) > eps:
+    eps = 1e-15
 
-    t = (t_min + t_max) / 2
+    while abs(min_e.real) > eps:
 
-    min_e = np.linalg.eigvals(A(t)).min()
+        t = (t_min + t_max) / 2
 
-    if min_e.real > 0:
-        t_min = t
-    elif min_e.real < 0:
-        t_max = t
+        min_e = np.linalg.eigvals(A(t)).min()
 
-    print("t_min: {}, t_max: {}, min_e: {}".format(t_min, t_max, min_e))
+        if min_e.real > 0:
+            t_min = t
+        elif min_e.real < 0:
+            t_max = t
+
+        print("t_min: {}, t_max: {}, min_e: {}".format(t_min, t_max, min_e))
+
+
+def width_vs_occupancy():
+
+    m = 3.5e3 * 5e2 * 1e-24
+
+    omega = 1e5
+
+    occupancies = np.linspace(1, 100)
+
+    betas = np.log((1/occupancies) + 1)/omega/hbar
+
+    temps = 1 / betas / k_B
+
+    widths = np.array([ThermalState(beta, omega, m).width for beta in betas])
+
+    gs_width = np.sqrt(np.log(2) * hbar / m / omega)
+
+    fig = plt.figure()
+
+    ax1 = fig.gca()
+
+    ax1.plot(occupancies, widths*1e10)
+
+    ax1.set_xlabel('$\\bar{n}$')
+    ax1.set_ylabel('HWHM (Å)')
+
+    ax2 = ax1.twiny()
+
+    ax2.set_xlabel('T ($\mu$K)')
+
+    ax2.plot(1e6*temps, gs_width*np.ones(temps.shape)*1e10)
+
+    plt.show()
+
+if __name__ == "__main__":
+    width_vs_occupancy()
