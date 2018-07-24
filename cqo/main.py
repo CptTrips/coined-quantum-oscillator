@@ -28,7 +28,7 @@ def main():
 
     ### Parameters ###
 
-    N = 1 # Walk steps
+    N = 5 # Walk steps
 
     hbar = units.hbar
 
@@ -47,20 +47,21 @@ def main():
     """
     Trap frequencies: 0.1-1 Mhz
     """
-    omega = 2 * np.pi * 1.5e5
+    omega = 2 * np.pi * 0.5e5
 
     tscale = (2*np.pi)/omega
 
     lscale = np.sqrt(hbar / (2 * mass * omega))
 
     """
-    Interaction strength: 0.015 * omega (in their paper omega ~ 6e6)
-    Appears in Hamiltonian as hbar*l*S_z*x
-    (See Scala et al PRL 2013 for numeric value of 0.015)
+    Magnetic gradient force: ~5e-22 N
+    (See Scala et al PRL 2013)
     """
-    l = (0.06 * 6e6) / lscale
+    F = 1e-20
+    F_enhancement = 1e2
+    F = F * F_enhancement
 
-    alpha = 2 * (2 / (mass * omega**2)) * hbar * l
+    alpha = 2 * F / mass / omega**2
 
     alpha_0 = 0
 
@@ -81,15 +82,15 @@ def main():
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 1 # 0.5, 5, 50
+    occupancy = 24 # 0.5, 5, 50
 
-    beta = np.log((1/occupancy) + 1)/omega
+    beta = np.log((1/occupancy) + 1)/omega/hbar
 
     # Simulation paramters
 
-    resolution = 10
+    resolution = 16
 
-    error = 1e-2
+    error = 5e-4
 
     # Coin operators
 
@@ -110,8 +111,8 @@ def main():
 
     COIN_OP = balanced_flip
 
-    walk_state = CoherentState(alpha_0, mass*omega)
-    #walk_state = ThermalState(beta, omega, mass)
+    #walk_state = CoherentState(alpha_0, mass*omega)
+    walk_state = ThermalState(beta, omega, mass)
 
     spin_state = SpinState(projector(2,0))
 
@@ -123,6 +124,7 @@ def main():
 
     method = final_state
 
+    print("Displacement / Width: {}".format(alpha, walk_state.width))
 
     ### Simulation ###
 
@@ -141,14 +143,22 @@ def main():
 
     walk_pdf = np.diag(rho_walk[:,:,0,0] + rho_walk[:,:,1,1])
 
+    output.draw_pdf(sample_points/alpha, walk_pdf, "Walk PDF")
+
     # Evolve under free-flight
 
     t_free = 6.4 / omega
 
-    rho_final = np.zeros(rho_walk.shape)
+    rho_final = np.zeros(rho_walk.shape, dtype=np.complex128)
+
+    calc_rho_final = lambda s, s_: \
+            expansion_protocol(rho_walk[:,:,s,s_],
+                               sample_points,
+                               mass, omega,
+                               t_free)
 
     for s, s_ in zip([0,1],[0,1]):
-        rho_s_s_, coords_final = expansion_protocol(rho_walk[:,:,s,s_], sample_points, mass, omega, t_free)
+        rho_s_s_, coords_final = calc_rho_final(s,s_)
         rho_final[:,:,s,s_] = rho_s_s_
 
     final_pdf = np.diag(rho_final[:,:,0,0] + rho_final[:,:,1,1])
@@ -156,7 +166,7 @@ def main():
 
     ### Output ###
 
-    output.output(sample_points, walk_pdf, coords_final, final_pdf)
+    output.draw_pdf(coords_final, final_pdf, "Post-expansion PDF")
 
 
 # Do not run if imported
