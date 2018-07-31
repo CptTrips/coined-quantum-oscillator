@@ -28,7 +28,7 @@ def main():
 
     ### Parameters ###
 
-    N = 5 # Walk steps
+    N = 3 # Walk steps
 
     hbar = units.hbar
 
@@ -58,7 +58,7 @@ def main():
     (See Scala et al PRL 2013)
     """
     F = 1e-20
-    F_enhancement = 1e2
+    F_enhancement = 1e3
     F = F * F_enhancement
 
     alpha = 2 * F / mass / omega**2
@@ -88,7 +88,7 @@ def main():
 
     # Simulation paramters
 
-    resolution = 16
+    resolution = 5
 
     error = 5e-4
 
@@ -111,8 +111,8 @@ def main():
 
     COIN_OP = balanced_flip
 
-    #walk_state = CoherentState(alpha_0, mass*omega)
-    walk_state = ThermalState(beta, omega, mass)
+    walk_state = CoherentState(alpha_0, mass*omega)
+    #walk_state = ThermalState(beta, omega, mass)
 
     spin_state = SpinState(projector(2,0))
 
@@ -123,8 +123,6 @@ def main():
     sample_points = np.linspace(sample_min, sample_max, (N+3)*resolution)
 
     method = final_state
-
-    print("Displacement / Width: {}".format(alpha, walk_state.width))
 
     ### Simulation ###
 
@@ -141,13 +139,13 @@ def main():
         ] for x_ in sample_points
     ] for x in sample_points])
 
-    walk_pdf = np.diag(rho_walk[:,:,0,0] + rho_walk[:,:,1,1])
+    walk_0 = np.diag(rho_walk[:,:,0,0])
+    walk_1 = np.diag(rho_walk[:,:,1,1])
 
-    output.draw_pdf(sample_points/alpha, walk_pdf, "Walk PDF")
 
     # Evolve under free-flight
 
-    t_free = 6.4 / omega
+    t_free = 3 / omega
 
     rho_final = np.zeros(rho_walk.shape, dtype=np.complex128)
 
@@ -161,12 +159,17 @@ def main():
         rho_s_s_, coords_final = calc_rho_final(s,s_)
         rho_final[:,:,s,s_] = rho_s_s_
 
-    final_pdf = np.diag(rho_final[:,:,0,0] + rho_final[:,:,1,1])
-
+    final_0 = np.diag(rho_final[:,:,0,0])
+    final_1 = np.diag(rho_final[:,:,1,1])
 
     ### Output ###
 
-    output.draw_pdf(coords_final, final_pdf, "Post-expansion PDF")
+    print("Displacement: {}\nWidth: {}".format(alpha, walk_state.width))
+
+    output.draw_state(sample_points/alpha, walk_0, walk_1, "Walk PDF",
+                      show=False)
+
+    output.draw_state(coords_final, final_0, final_1, "Post-expansion PDF")
 
 
 # Do not run if imported

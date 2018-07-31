@@ -21,3 +21,34 @@ def output(x, P_walk, x_final, P_final):
 
     plt.show()
     #plt.savefig("/home/matthewf/spatial_pdf.png")
+
+
+def draw_pdf(x, P, title, block_arg=True):
+
+    plt.figure()
+
+    plt.plot(x, P)
+
+    plt.axis(ymin=0)
+
+    plt.title(title)
+
+    plt.show(block=block_arg)
+
+
+def draw_state(x, P_0, P_1, title, show=True):
+
+    plt.figure()
+
+    plt.plot(x, P_0, label = "P_0")
+
+    plt.plot(x, P_1, label = "P_1")
+
+    plt.plot(x, P_0 + P_1, label = "P_tot")
+
+    plt.legend()
+
+    plt.title(title)
+
+    if show:
+        plt.show()
