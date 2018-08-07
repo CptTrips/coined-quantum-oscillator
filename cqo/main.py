@@ -20,7 +20,7 @@ def main():
 
     # OPTIONS !!! PUT THESE IN A CFG/TURN THESE INTO ARGUMENTS !!!
 
-    N = 4 # Walk steps
+    N = 6 # Walk steps
 
     hbar = units.hbar
 
@@ -50,7 +50,7 @@ def main():
     Appears in Hamiltonian as hbar*l*S_z*x
     (See Scala et al PRL 2013 for numeric value of 0.015)
     """
-    l = (0.15 * 6e6) / lscale
+    l = (0.015 * 6e6) / lscale
 
     alpha = 2 * (2 / (mass * omega**2)) * hbar * l
 
@@ -61,7 +61,7 @@ def main():
     Decoherence rate: 2*pi*1.1e4 /s. See Romero-Isart PRA 2011 eq. 10
     off-diagonals decay as exp(-gamma*T*(x-x`)^2)
     """
-    Gamma_sc = 2 * pi * 1.1e2
+    Gamma_sc = 2 * np.pi * 1.1e2
 
     gamma = Gamma_sc / lscale**2
 
@@ -73,14 +73,14 @@ def main():
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 0.5 # 0.5, 5, 50
+    occupancy = 10 # 0.5, 5, 50
 
     beta = np.log((1/occupancy) + 1)/omega
 
 
     # Simulation paramters
 
-    resolution = 8
+    resolution = 16
 
     error = 5e-4
 
