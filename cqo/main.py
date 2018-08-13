@@ -28,7 +28,7 @@ def main():
 
     ### Parameters ###
 
-    N = 3 # Walk steps
+    N = 2 # Walk steps
 
     hbar = units.hbar
 
@@ -82,9 +82,17 @@ def main():
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 1e-3 # 0.5, 5, 50
+    occupancy = 3e-4 # 0.5, 5, 50
 
-    beta = np.log((1/occupancy) + 1)/omega/hbar
+    if occupancy < 1e-3:
+        walk_state = CoherentState(alpha_0, mass*omega)
+    else:
+        beta = np.log((1/occupancy) + 1)/omega/hbar
+        walk_state = ThermalState(beta, omega, mass)
+
+    # Free flight time
+
+    t_free = 2**0 / omega
 
     # Simulation paramters
 
@@ -109,22 +117,31 @@ def main():
 
     ### Initialisation ###
 
-    COIN_OP = balanced_flip
+    # Initial states
 
-    walk_state = CoherentState(alpha_0, mass*omega)
-    #walk_state = ThermalState(beta, omega, mass)
+    COIN_OP = balanced_flip
 
     spin_state = SpinState(projector(2,0))
 
-    sample_min = -alpha - 2*walk_state.width
+    # Mesh
 
-    sample_max = (N+1)*alpha + 2*walk_state.width
+    sample_min = -4*walk_state.width
 
-    sample_points = np.linspace(sample_min, sample_max, (N+3)*resolution)
+    sample_max = N*alpha + 4*walk_state.width
+
+    sample_points = np.linspace(sample_min, sample_max, (N+1)*resolution)
+
+    mesh_x, mesh_x_ = np.meshgrid(sample_points, sample_points)
+
+    mesh = np.array([mesh_x, mesh_x_]).transpose(1, 2, 0)
+
+    # Calculation method
 
     method = final_state
 
     ### Simulation ###
+
+    # Quantum Walk
 
     element = lambda x, x_, s, s_: method(N, x, x_, s, s_, walk_state,
                                           spin_state, COIN_OP, alpha, gamma_T,
@@ -134,42 +151,42 @@ def main():
     [
         [
             [
-                element(x, x_, s, s_) for s_ in [0,1]
+                element(vec[0], vec[1], s, s_) for s_ in [0,1]
             ] for s in [0,1]
-        ] for x_ in sample_points
-    ] for x in sample_points])
+        ] for vec in row
+    ] for row in mesh])
+
+    # Evolve under free-flight
+
+    calc_rho_final = lambda s, s_: \
+            expansion_protocol(rho_walk[:,:,s,s_],
+                               mesh,
+                               mass, omega,
+                               t_free)
+
+    rho_final_0_0, coords_final = calc_rho_final(0,0)
+    rho_final_1_1, coords_final = calc_rho_final(1,1)
+
+    ### Output ###
 
     walk_0 = np.diag(rho_walk[:,:,0,0])
     walk_1 = np.diag(rho_walk[:,:,1,1])
 
-
-    # Evolve under free-flight
-
-    t_free = 3 / omega
-
-    rho_final = np.zeros(rho_walk.shape, dtype=np.complex128)
-
-    calc_rho_final = lambda s, s_: \
-            expansion_protocol(rho_walk[:,:,s,s_],
-                               sample_points,
-                               mass, omega,
-                               t_free)
-
-    for s, s_ in zip([0,1],[0,1]):
-        rho_s_s_, coords_final = calc_rho_final(s,s_)
-        rho_final[:,:,s,s_] = rho_s_s_
-
-    final_0 = np.diag(rho_final[:,:,0,0])
-    final_1 = np.diag(rho_final[:,:,1,1])
-
-    ### Output ###
+    final_0 = np.diag(rho_final_0_0)
+    final_1 = np.diag(rho_final_1_1)
 
     print("Displacement: {}\nWidth: {}".format(alpha, walk_state.width))
+
+    x_final = coords_final[:,0,1]
 
     output.draw_state(sample_points, walk_0, walk_1, "Walk PDF",
                       show=False)
 
-    output.draw_state(coords_final, final_0, final_1, "Post-expansion PDF")
+    output.draw_state(x_final, final_0, final_1, "Post-expansion PDF",
+                      show=False)
+
+    output.draw_expansion(sample_points, walk_0, walk_1,
+                          x_final, final_0, final_1)
 
 
 # Do not run if imported

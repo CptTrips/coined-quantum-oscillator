@@ -52,3 +52,24 @@ def draw_state(x, P_0, P_1, title, show=True):
 
     if show:
         plt.show()
+
+
+def draw_expansion(x, P_0, P_1, x_exp, P_exp_0, P_exp_1):
+
+    plt.figure()
+
+    plt.plot(x, P_0, 'b:', label = "P_0")
+
+    plt.plot(x, P_1, 'r:', label = "P_1")
+
+    plt.plot(x, P_0 + P_1, 'y:', label = "P_tot")
+
+    plt.plot(x_exp, P_exp_0, 'b', label = "P_expanded_0")
+
+    plt.plot(x_exp, P_exp_1, 'r', label = "P_expanded_1")
+
+    plt.plot(x_exp, P_exp_0 + P_exp_1, 'y', label = "P_expanded_tot")
+
+    plt.legend()
+
+    plt.show()

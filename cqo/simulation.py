@@ -53,7 +53,6 @@ def walk_amplitudes(N, coin_op):
 
     return amplitudes
 
-
 def coherent_state(alpha, res):
     """
     Samples the density matrix of a coherent state
@@ -83,6 +82,9 @@ def final_state(N, x, x_, s, s_, walk_state, spin_state, coin_amplitudes, alpha,
     Returns:
         complex: Matrix element
     """
+
+    if N == 0:
+        return walk_state.sample(x, x_) * spin_state.sample(s, s_)
 
     final_term = 0
 
@@ -320,7 +322,7 @@ def final_state_recursive(N, x, x_, s, s_, walk_state,
         return (walk_state.sample(x, x_) * spin_state.sample(s, s_)
                 * np.exp(-decoherence*(x-x_)**2))
 
-def expansion_protocol(rho, coords, m, omega, t, debug=False):
+def expansion_protocol(rho, mesh, m, omega, t, debug=False):
     """Calculates the position state of a particle which evolves under a
     harmonic potential for a quarter period and is then released for a
     specified time.
@@ -337,31 +339,36 @@ def expansion_protocol(rho, coords, m, omega, t, debug=False):
                      protocol
     """
 
-    # Might have to evenly space the input
-
     # Move to momentum space
-    x = np.array([[[x,x_] for x_ in coords] for x in coords])
-
-    rho_p, p = quarter_period(rho, x, m, omega)
+    rho_p, p_mesh = quarter_period(rho, mesh, m, omega)
 
     # Scale and translate the output coordinates
 
-    v_min = p[-1,-1,0] / m
-    v_max = p[0,0,0] / m
+    v_min = 0.5*p_mesh.min() / m
+    v_max = 0.5*p_mesh.max() / m
 
-    x_max = coords.max() + v_max * t
-    x_min = coords.min() +  v_min * t
+    x_max = mesh.max() + v_max * t
+    x_min = mesh.min() +  v_min * t
 
-    print("({},{}) = ({},{}) + ({},{}) * {}".format(x_min,x_max,coords.min(),coords.max(),v_min,v_max,t))
+    res = 4 * mesh.shape[0]
 
-    coords_out = np.linspace(x_min, x_max, len(coords))
+    coords = np.linspace(x_min, x_max, res)
+
+    mesh_x, mesh_x_ = np.meshgrid(coords, coords)
+    mesh_out = np.array([mesh_x, mesh_x_]).transpose(1,2,0)
 
     # Convolution
     rho_out = np.array([[
-        integrate(kernel(np.array([x, x_]), p, m , t, debug) * rho_p, p)
-    for x in coords_out] for x_ in coords_out])
+        integrate(kernel(x_vec, p_mesh, m , t, debug) * rho_p, p_mesh)
+    for x_vec in row] for row in mesh_out])
 
-    return rho_out, coords_out
+    # Force normalisation
+    x = np.diag(mesh_out[:,:,0])
+    dx = x[1:] - x[:-1]
+    dx = np.append(dx, dx[-1])
+    rho_out = rho_out / (dx*np.diag(rho_out)).sum()
+
+    return rho_out, mesh_out
 
 def integrate(f, x):
     """Integrate f(x)
@@ -388,10 +395,9 @@ def quarter_period(rho, x, m, omega):
     """
 
     p = -x * m * omega
-    rho_p = rho / m / omega
+    rho_p = rho / (m * omega)
 
     return rho_p, p
-
 
 def kernel(x, p, m, t, debug=False):
     """Builds the convolution kernel for calculating density matrix evolution
@@ -420,27 +426,5 @@ def kernel(x, p, m, t, debug=False):
     dAd = np.array([[d_vec.T @ A @ d_vec for d_vec in d_array] for d_array in d])
 
     k = prefactor*np.exp(dAd)
-
-    if (debug):
-
-        print("m: {}\nt: {}\nx: {}\np(8,8): {}".format(m,t,x,p[8,8]))
-
-        from matplotlib import pyplot as plt
-        from mpl_toolkits.mplot3d import Axes3D
-
-        plt.figure()
-        plt.pcolor(dAd.imag)
-        plt.colorbar()
-        plt.title("dAd")
-
-        plt.figure()
-        plt.subplot(2,1,1)
-        plt.imshow(k.imag / k.imag.max())
-        plt.subplot(2,1,2)
-        plt.imshow(k.real / k.real.max())
-
-        import pdb; pdb.set_trace()
-
-        plt.show()
 
     return k

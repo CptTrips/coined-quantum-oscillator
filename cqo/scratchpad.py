@@ -1,7 +1,7 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from cqo.units import hbar, k_B
-from cqo.simulation import ThermalState
+from cqo.simulation import ThermalState, expansion_protocol
 
 def eigenvalues_of_A():
 
@@ -89,6 +89,46 @@ def width_vs_occupancy():
     ax2.plot(1e6*temps, gs_width*np.ones(temps.shape)*1e10)
 
     plt.show()
+
+def free_flight_coherence():
+
+    beta = 1e17
+    omega = 1e5
+    m = 1e-18
+
+    rho = ThermalState(beta, omega, mass)
+
+    # plot density matrix
+
+    sample_points = np.linspace(-4*rho.width, 4*rho.width)
+
+    density_matrix = np.array(
+        [
+            [
+                rho.sample(x, x_) for x_ in sample_points
+            ]
+            for x in sample_points
+        ])
+
+
+    plt.figure()
+
+    plt.imshow(abs(density_matrix))
+
+    plt.title("Before")
+
+
+    # plot density matrix after free flight
+
+    mesh_x, mesh_y = np.meshgrid(sample_points, sample_points)
+
+    mesh = np.array([mesh_x, mesh_y]).transpose(1, 2, 0)
+
+    ff_density_matrix = expansion_protocol(density_matrix, mesh, m, omega, 1 / omega)
+
+    plt.figure()
+
+    plt.imshow(abs(density_matrix))
 
 if __name__ == "__main__":
     width_vs_occupancy()
