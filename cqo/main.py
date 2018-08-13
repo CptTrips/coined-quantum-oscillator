@@ -58,7 +58,7 @@ def main():
     (See Scala et al PRL 2013)
     """
     F = 1e-20
-    F_enhancement = 1e3
+    F_enhancement = 1e2
     F = F * F_enhancement
 
     alpha = 2 * F / mass / omega**2
@@ -82,7 +82,7 @@ def main():
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 24 # 0.5, 5, 50
+    occupancy = 1e-3 # 0.5, 5, 50
 
     beta = np.log((1/occupancy) + 1)/omega/hbar
 
@@ -166,7 +166,7 @@ def main():
 
     print("Displacement: {}\nWidth: {}".format(alpha, walk_state.width))
 
-    output.draw_state(sample_points/alpha, walk_0, walk_1, "Walk PDF",
+    output.draw_state(sample_points, walk_0, walk_1, "Walk PDF",
                       show=False)
 
     output.draw_state(coords_final, final_0, final_1, "Post-expansion PDF")
