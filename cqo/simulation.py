@@ -339,6 +339,11 @@ def expansion_protocol(rho, mesh, m, omega, t, debug=False):
                      protocol
     """
 
+    x = np.diag(mesh[:,:,0])
+    dx = x[1:] - x[:-1]
+    dx = np.append(dx, dx[-1])
+    norm = (dx*np.diag(rho)).sum()
+
     # Move to momentum space
     rho_p, p_mesh = quarter_period(rho, mesh, m, omega)
 
@@ -350,7 +355,7 @@ def expansion_protocol(rho, mesh, m, omega, t, debug=False):
     x_max = mesh.max() + v_max * t
     x_min = mesh.min() +  v_min * t
 
-    res = 4 * mesh.shape[0]
+    res = 1 * mesh.shape[0]
 
     coords = np.linspace(x_min, x_max, res)
 
@@ -362,11 +367,11 @@ def expansion_protocol(rho, mesh, m, omega, t, debug=False):
         integrate(kernel(x_vec, p_mesh, m , t, debug) * rho_p, p_mesh)
     for x_vec in row] for row in mesh_out])
 
-    # Force normalisation
+    # Preserve the norm
     x = np.diag(mesh_out[:,:,0])
     dx = x[1:] - x[:-1]
     dx = np.append(dx, dx[-1])
-    rho_out = rho_out / (dx*np.diag(rho_out)).sum()
+    rho_out = norm * rho_out / (dx*np.diag(rho_out)).sum()
 
     return rho_out, mesh_out
 

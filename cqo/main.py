@@ -28,7 +28,7 @@ def main():
 
     ### Parameters ###
 
-    N = 2 # Walk steps
+    N = 3 # Walk steps
 
     hbar = units.hbar
 
@@ -92,11 +92,11 @@ def main():
 
     # Free flight time
 
-    t_free = 2**0 / omega
+    t_free = 3e0 / omega
 
     # Simulation paramters
 
-    resolution = 5
+    resolution = 8
 
     error = 5e-4
 
