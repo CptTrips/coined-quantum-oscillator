@@ -233,7 +233,15 @@ class ThermalState:
 
         self.detA = np.linalg.det(A)
 
-        self.B = np.sqrt(2*mass*omega/units.hbar) * np.array([1, 1j, 1, -1j])
+        T = np.diag([1,1j,1,-1j])
+
+        C = T@self.A_1@T
+
+        self.a = 0.5*mass*omega/units.hbar * (-2*np.array([
+            [C[0:2,0:2].sum(), C[0:2,2:4].sum()],
+            [C[2:4,0:2].sum(), C[2:4,2:4].sum()]])
+            + np.eye(2)
+        )
 
         # is this necessary?
         if beta*omega*units.hbar < 1e-3:
@@ -250,9 +258,9 @@ class ThermalState:
 
     def sample(self, x, x_):
 
-        B = self.B * np.array([x, x, x_, x_])
+        b = np.array([x, x_])
 
-        return self.N * np.exp(-0.5*self.mw/units.hbar*(x**2 + x_**2) + 0.5 * B.T@self.A_1@B)
+        return self.N * np.exp(-b.T@self.a@b)
 
     def _width(self):
 
