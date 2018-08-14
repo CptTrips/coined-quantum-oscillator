@@ -254,7 +254,7 @@ class ThermalState:
 
         self.mw = mass * omega
 
-        self.width = self._width()
+        self.width, self.coherence_width = self._width()
 
     def sample(self, x, x_):
 
@@ -264,41 +264,17 @@ class ThermalState:
 
     def _width(self):
 
-        # Find the HWHM
-        H = self.sample(0,0)
+        H = np.array([
+            [0.5, 0.5],
+            [0.5, -0.5]])
 
-        w_min = 0
-        w_max = np.sqrt(units.hbar / self.mw) # Lower bound of w
+        width_matrix = H @ self.a @ H
 
-        r = self.sample(w_max, w_max) / H
+        width = np.sqrt(0.5/width_matrix[0,0])
 
-        while r > 0.5:
+        coherence_width = np.sqrt(0.5/width_matrix[1,1])
 
-            w_min = w_max
-
-            w_max *= 2
-
-            r = self.sample(w_max, w_max) / H
-
-        error = 1e-3
-
-        w = w_max
-
-        while abs(r - 0.5) > error:
-
-            w = 0.5 * (w_min + w_max)
-
-            r = self.sample(w, w) / H
-
-            if r > 0.5:
-                # w too small
-                w_min = w
-
-            elif r < 0.5:
-                # w too large
-                w_max = w
-
-        return w
+        return width, coherence_width
 
 def final_state_recursive(N, x, x_, s, s_, walk_state,
                           spin_state, coin_amplitudes, alpha, decoherence, eps):
