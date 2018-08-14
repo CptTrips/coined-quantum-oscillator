@@ -56,6 +56,26 @@ def eigenvalues_of_A():
 
         print("t_min: {}, t_max: {}, min_e: {}".format(t_min, t_max, min_e))
 
+def betahomega(occupancy):
+    return np.log((1/occupancy) + 1)
+
+def coherence_vs_temperature():
+
+    omega = 1.5e5
+
+    mass = 1e-18
+
+    occupancies = 10**np.linspace(-1, 2, 10)
+
+    betas = betahomega(occupancies) / omega / hbar
+
+    width_ratios = [ThermalState(beta, omega, mass).coherence_width / ThermalState(beta, omega, mass).width for beta in betas]
+
+    plt.figure()
+
+    plt.plot(occupancies, np.log10(width_ratios))
+
+    plt.show()
 
 def width_vs_occupancy():
 
@@ -65,7 +85,7 @@ def width_vs_occupancy():
 
     occupancies = np.linspace(1, 100)
 
-    betas = np.log((1/occupancies) + 1)/omega/hbar
+    betas = betahomega(occupancies)/omega/hbar
 
     temps = 1 / betas / k_B
 
@@ -108,15 +128,14 @@ def free_flight_coherence():
                 rho.sample(x, x_) for x_ in sample_points
             ]
             for x in sample_points
-        ])
-
+        ]
+    )
 
     plt.figure()
 
     plt.imshow(abs(density_matrix))
 
     plt.title("Before")
-
 
     # plot density matrix after free flight
 
@@ -130,5 +149,8 @@ def free_flight_coherence():
 
     plt.imshow(abs(density_matrix))
 
+
+
 if __name__ == "__main__":
-    width_vs_occupancy()
+    coherence_vs_temperature()
+
