@@ -150,7 +150,29 @@ def free_flight_coherence():
     plt.imshow(abs(density_matrix))
 
 
+def res_vs_occupancy():
+
+    m = 3.5e3 * 4/3 * np.pi * (5e-8)**3
+
+    omega = 1e5
+
+    occupancies = 0.5*10**np.linspace(0, 2, 10)
+
+    betas = betahomega(occupancies)/omega/hbar
+
+    def res(beta, omega, m):
+        rho = ThermalState(beta, omega, m)
+        return 10*rho.width / rho.coherence_width
+
+    resolutions = np.array([res(beta, omega, m) for beta in betas])
+
+    fig = plt.figure()
+
+    plt.plot(occupancies, resolutions)
+
+    plt.show()
+
 
 if __name__ == "__main__":
-    coherence_vs_temperature()
+    res_vs_occupancy()
 
