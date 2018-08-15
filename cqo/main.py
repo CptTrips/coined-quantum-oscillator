@@ -1,3 +1,4 @@
+import argparse
 import numpy as np
 from simulation import (final_state,
                         CoherentState,
@@ -11,17 +12,8 @@ import output
 
 
 
-def main():
+def main(resolution = 16):
 
-    #parser = argparse.ArgumentParser()
-    """
-
-    parser.add_argument('--opt', dest='opt', required=False)
-
-    agrs = parser.parse_args()
-
-    opt = args.opt
-    """
 
     # OPTIONS !!! PUT THESE IN A CFG/TURN THESE INTO ARGUMENTS !!!
 
@@ -95,8 +87,6 @@ def main():
     t_free = 9e0 / omega
 
     # Simulation paramters
-
-    resolution = 16
 
     error = 5e-4
 
@@ -198,4 +188,24 @@ def main():
 
 # Do not run if imported
 if __name__ == "__main__":
-    main()
+
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--res', dest='resolution', type=int)
+
+    args = vars(parser.parse_args())
+
+    null_args = []
+
+    for k, v in args.items():
+        if not v:
+            null_args.append(k)
+
+    for k in null_args:
+        args.pop(k)
+
+    if len(args) > 0:
+        main(**args)
+    else:
+        main()
+
