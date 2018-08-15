@@ -1,14 +1,14 @@
 import argparse
 import numpy as np
-from simulation import (final_state,
+from cqo.simulation import (final_state,
                         CoherentState,
                         SpinState,
                         ThermalState,
                         final_state_recursive,
                         expansion_protocol)
-from algebra import projector
-import units
-import output
+from cqo.algebra import projector
+import cqo.units as units
+import cqo.output as output
 
 
 
