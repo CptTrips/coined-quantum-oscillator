@@ -8,7 +8,7 @@ def time_main(res):
 
     res_str = str(res)
 
-    statement = "main(resolution="+res_str+")"
+    statement = "main.main(resolution="+res_str+")"
 
     return timeit.timeit(statement, number=1)
 
