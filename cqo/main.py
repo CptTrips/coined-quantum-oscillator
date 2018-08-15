@@ -82,7 +82,7 @@ def main():
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 3e-4 # 0.5, 5, 50
+    occupancy = 5e-1 # 0.5, 5, 50
 
     if occupancy < 1e-3:
         walk_state = CoherentState(alpha_0, mass*omega)
@@ -92,11 +92,11 @@ def main():
 
     # Free flight time
 
-    t_free = 3e0 / omega
+    t_free = 9e0 / omega
 
     # Simulation paramters
 
-    resolution = 8
+    resolution = 16
 
     error = 5e-4
 
@@ -125,9 +125,9 @@ def main():
 
     # Mesh
 
-    sample_min = -4*walk_state.width
+    sample_min = -2*walk_state.width
 
-    sample_max = N*alpha + 4*walk_state.width
+    sample_max = N*alpha + 2*walk_state.width
 
     sample_points = np.linspace(sample_min, sample_max, (N+1)*resolution)
 
@@ -172,6 +172,10 @@ def main():
     walk_0 = np.diag(rho_walk[:,:,0,0])
     walk_1 = np.diag(rho_walk[:,:,1,1])
 
+    rho_walk_dm = np.block([
+        [rho_walk[:,:,0,0], rho_walk[:,:,0,1]],
+        [rho_walk[:,:,1,0], rho_walk[:,:,1,1]]])
+
     final_0 = np.diag(rho_final_0_0)
     final_1 = np.diag(rho_final_1_1)
 
@@ -179,10 +183,13 @@ def main():
 
     x_final = coords_final[:,0,1]
 
-    output.draw_state(sample_points, walk_0, walk_1, "Walk PDF",
+    output.draw_pdf(sample_points, walk_0, walk_1, "Walk PDF",
                       show=False)
 
-    output.draw_state(x_final, final_0, final_1, "Post-expansion PDF",
+    output.draw_density_matrix(rho_walk_dm, "Walk Density Matrix",
+                               show=False)
+
+    output.draw_pdf(x_final, final_0, final_1, "Post-expansion PDF",
                       show=False)
 
     output.draw_expansion(sample_points, walk_0, walk_1,

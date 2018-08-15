@@ -36,7 +36,7 @@ def draw_pdf(x, P, title, block_arg=True):
     plt.show(block=block_arg)
 
 
-def draw_state(x, P_0, P_1, title, show=True):
+def draw_pdf(x, P_0, P_1, title, show=True):
 
     plt.figure()
 
@@ -47,6 +47,18 @@ def draw_state(x, P_0, P_1, title, show=True):
     plt.plot(x, P_0 + P_1, label = "P_tot")
 
     plt.legend()
+
+    plt.title(title)
+
+    if show:
+        plt.show()
+
+
+def draw_density_matrix(rho, title, show=True):
+
+    plt.figure()
+
+    plt.imshow(abs(rho))
 
     plt.title(title)
 
