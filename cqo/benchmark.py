@@ -15,7 +15,7 @@ def time_main(res):
 
 def benchmark_main():
 
-    resolutions = [4, 8, 16, 32]
+    resolutions = [1, 2, 4, 8, 16, 32]
 
     timings = [time_main(res) for res in resolutions]
 
