@@ -1,4 +1,5 @@
 import numpy as np
+import logging
 import cqo.units as units
 from cqo.algebra import H, condition_subsystem, postselect, binary_combinations
 from itertools import product
@@ -417,3 +418,178 @@ def kernel(x, p, m, t, debug=False):
     k = prefactor*np.exp(dAd)
 
     return k
+
+class MultiGaussianWalk:
+    """Calculates a quantum walk with the assumption that the state at all
+    steps is a sum of gaussians.
+    """
+
+    def __init__(self, state, alpha, coin_operator, gamma_T):
+
+        self._state = state
+        self._alpha = alpha
+        self._coin_op = coin_operator
+
+        self._gamma = 2*gamma_T*np.array([[1, -1],
+                                          [-1, 1]])
+
+    def step(self, steps=1):
+
+        for s in range(steps):
+
+            logging.info("Walk step: {}".format(s+1))
+
+            self._coin()
+            self._displace()
+            self._decohere()
+
+            state_shape = [[len(state_list) for state_list in row] for row in self._state]
+
+            logging.debug("State shape: {}".format(state_shape))
+
+    def _coin(self):
+
+        new_state = [[[], []],
+                     [[], []]]
+
+        for i, j, k, l in product([0,1], repeat=4):
+
+            element = self._coin_op[i][k] * self._coin_op[j][l].conjugate()
+
+            new_list = [element * g for g in self._state[k][l]]
+
+            # Detect duplicates.
+            # Find states in new_list which have the same b and A as ones in new_state
+
+            pop_list = []
+
+            for g, n in zip(new_list, range(len(new_list))):
+
+                for g_, m in zip(new_state[i][j], range(len(new_state[i][j]))):
+
+                    # If b and A of g and g_ match then update g_ and remove g
+
+                    if np.allclose(g.A, g_.A, atol=1e-15) and np.allclose(g.b, g_.b, atol=1e-15):
+
+                        new_state[i][j][m].amplitude += new_list[n].amplitude
+
+                        pop_list.append(g)
+
+            for p in pop_list:
+                new_list.remove(p)
+
+            new_state[i][j] += new_list
+
+        self._state = new_state
+
+    def _next_occurance(self, list, x, start):
+        """Find next occurance of tuple x in list
+        """
+
+        occurance = -1
+
+        if len(list) <= start:
+            return occurance
+
+        for y, i in zip(list[start:], range(len(list[start:]))):
+
+            x_eq_y = True
+
+            for np_arr1, np_arr2 in zip(x, y):
+
+                x_eq_y = np.all(np.equal(np_arr1, np_arr2))
+
+            if x_eq_y:
+
+                occurance = i + start
+
+                break
+
+        return occurance
+
+    def _displace(self):
+
+        # Shift all the bs by alpha
+
+        shift_vectors = self._alpha*np.array([[[0, 0], [0, 1]],
+                                              [[1, 0], [1, 1]]])
+
+        for i in [0,1]:
+            for j in [0,1]:
+                # Shift every gaussian in self._state[i][j] by shift_vectors[i][j]
+                for g in self._state[i][j]:
+                    g.b = g.b + shift_vectors[i][j]
+
+    def _decohere(self):
+
+        # A,b and amplitude update rules
+
+        for rho_i in self._state:
+            for rho_ij in rho_i:
+                for g in rho_ij:
+                    new_A = g.A + self._gamma
+                    new_A_inv = np.linalg.inv(new_A)
+                    new_b = np.linalg.inv(new_A)@g.A@g.b
+                    new_amplitude = (g.amplitude
+                                     * np.exp(-0.5*(g.b.T@(g.A -
+                                                           g.A@new_A_inv@g.A)@g.b)))
+                    g.b = new_b
+                    g.A = new_A
+                    g.amplitude = new_amplitude
+
+    def sample(self, x, x_, s, s_):
+
+        sample = 0
+
+        for g in self._state[s][s_]:
+            sample += g.sample([x, x_])
+
+        return sample
+
+class Gaussian:
+    """Amplitude, shift b, and matrix A.
+    """
+
+    def __init__(self, amplitude, b, A):
+        self.amplitude = amplitude
+        self.b = b
+        self.A = A
+
+    def __mul__(self, rhs):
+        return Gaussian(self.amplitude*rhs, self.b, self.A)
+
+    __rmul__ = __mul__
+
+    def sample(self, x_vec, log_error = -8):
+
+        x_shifted = x_vec - self.b
+
+        exponent = -0.5 * x_shifted.T @ self.A @ x_shifted
+
+        if exponent < log_error:
+            return 0
+        else:
+            return self.amplitude * np.exp(exponent)
+
+class ThermalGaussian(Gaussian):
+
+    def __init__(self, thermal_state):
+
+        Gaussian.__init__(self, thermal_state.N, np.array([0,0]), thermal_state.a)
+
+class CoherentGaussian(Gaussian):
+
+    def __init__(self, coherent_state):
+
+        alpha = coherent_state.alpha
+
+        sigma = coherent_state.sigma
+
+        amplitude = coherent_state.N**2 * np.exp(-2*alpha.imag**2)
+
+        b = sigma*np.array([alpha, alpha.conjugate()])
+
+        A = 2/sigma**2 * np.eye(2)
+
+        Gaussian.__init__(self, amplitude, b, A)
+
