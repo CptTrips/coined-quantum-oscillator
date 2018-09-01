@@ -3,6 +3,7 @@ import logging
 import cqo.units as units
 from cqo.algebra import H, condition_subsystem, postselect, binary_combinations
 from itertools import product
+import math
 
 
 def walk_amplitudes(N, coin_op):
@@ -433,7 +434,7 @@ class MultiGaussianWalk:
         self._gamma = 2*gamma_T*np.array([[1, -1],
                                           [-1, 1]])
 
-    def step(self, steps=1):
+    def step(self, steps=1, error=1e-3):
 
         for s in range(steps):
 
@@ -442,6 +443,7 @@ class MultiGaussianWalk:
             self._coin()
             self._displace()
             self._decohere()
+            self._cull_low_amplitudes(error)
 
             state_shape = [[len(state_list) for state_list in row] for row in self._state]
 
@@ -520,22 +522,67 @@ class MultiGaussianWalk:
                 for g in self._state[i][j]:
                     g.b = g.b + shift_vectors[i][j]
 
+    def list_amplitudes(self):
+
+        amplitudes = []
+
+        for i, j in product([0,1], [0,1]):
+
+            for g in self._state[i][j]:
+
+                amplitudes.append(g.amplitude)
+
+        return amplitudes
+
+    def _cull_low_amplitudes(self, error=1e-3):
+
+        logging.debug("Culling low amplitudes")
+
+        amplitudes = self.list_amplitudes()
+
+        max_amplitude = np.array(amplitudes).max()
+
+        for i, j in product([0,1], [0,1]):
+
+            # Find all low amplitude gaussians
+
+            gaussian_count_1 = len(self._state[i][j])
+
+            new_list = []
+
+            for g in self._state[i][j]:
+
+                if abs(g.amplitude) > error * abs(max_amplitude):
+
+                    new_list.append(g)
+
+            gaussian_count_2 = len(new_list)
+
+            culled_count = gaussian_count_1 - gaussian_count_2
+
+            logging.debug("Culled {} gaussians ".format(culled_count))
+            logging.debug("s, s_ = {}, {}".format(i, j))
+
+            self._state[i][j] = new_list
+
     def _decohere(self):
 
         # A,b and amplitude update rules
 
-        for rho_i in self._state:
-            for rho_ij in rho_i:
-                for g in rho_ij:
-                    new_A = g.A + self._gamma
-                    new_A_inv = np.linalg.inv(new_A)
-                    new_b = np.linalg.inv(new_A)@g.A@g.b
-                    new_amplitude = (g.amplitude
-                                     * np.exp(-0.5*(g.b.T@(g.A -
-                                                           g.A@new_A_inv@g.A)@g.b)))
-                    g.b = new_b
-                    g.A = new_A
-                    g.amplitude = new_amplitude
+        low_amplitude_indices = []
+
+        for i, j in product([0,1], [0,1]):
+            for g in self._state[i][j]:
+
+                new_A = g.A + self._gamma
+                new_A_inv = np.linalg.inv(new_A)
+                new_b = np.linalg.inv(new_A)@g.A@g.b
+                new_amplitude = (g.amplitude
+                                 * np.exp(-0.5*(g.b.T@(g.A -
+                                                       g.A@new_A_inv@g.A)@g.b)))
+                g.b = new_b
+                g.A = new_A
+                g.amplitude = new_amplitude
 
     def sample(self, x, x_, s, s_):
 
@@ -545,6 +592,98 @@ class MultiGaussianWalk:
             sample += g.sample([x, x_])
 
         return sample
+
+    def quarter_period(self, mass, omega):
+
+        mw = mass * omega
+
+        # Update each gaussian
+        for i, j in product([0,1],repeat = 2):
+            for g in self._state[i][j]:
+
+                g.amplitude = g.amplitude / (4 * mw)
+
+                g.b = -mw * g.b
+
+                g.A = g.A/(mw*mw)
+
+    def free_flight(self, mass, t_free):
+
+        # Apply free flight update rules
+
+        Z = np.array([[1, 0], [0, -1]]) / units.hbar
+
+        F = 1j*t_free / mass * Z
+
+        for i, j in product([0,1], [0,1]):
+            for g in self._state[i][j]:
+
+                A_F_1 = np.linalg.inv(g.A + F)
+
+                g.amplitude *= np.sqrt(np.linalg.det(A_F_1) / np.pi)
+                g.amplitude /= (2 * units.hbar)
+                g.amplitude *= np.exp(-0.5*(g.b.T@g.A@g.b))
+
+                g.b = 1j * Z @ g.A @ g.b
+
+                g.A = Z @ A_F_1 @ Z
+
+    def list_b(self):
+
+        b_list = []
+
+        for i, j in product([0,1], [0,1]):
+            for g in self._state[i][j]:
+
+                b_list += [g.b]
+
+        return b_list
+
+class ClassicalMGW:
+
+    def __init__(self, state, alpha):
+
+        self._state = state
+
+        self._alpha = alpha
+
+        self._binomial = [1]
+
+        self._step_count = 0
+
+    def step(self, step=1):
+
+        self._step_count += step
+
+        self._binomial = self._binomial_distribution(self._step_count)
+
+        logging.debug("Binomial distribution: {}".format(self._binomial))
+
+    def sample(self, x):
+
+        s = 0
+
+        for i in range(len(self._binomial)):
+
+            r = self._binomial[i]
+
+            x_shifted = x - i * self._alpha
+
+            s += r * self._state.sample([x_shifted, x_shifted])
+
+        return s
+
+    def _choose(self, n, r):
+
+        return math.factorial(n) / math.factorial(n - r) / math.factorial(r)
+
+    def _binomial_distribution(self, n):
+
+        choose_n = [self._choose(n, r) for r in range(n+1)]
+
+        norm = sum(choose_n)
+
+        return [ncr / norm for ncr in choose_n]
 
 class Gaussian:
     """Amplitude, shift b, and matrix A.

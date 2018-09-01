@@ -9,7 +9,8 @@ from cqo.simulation import (final_state,
                         expansion_protocol,
                         ThermalGaussian,
                         CoherentGaussian,
-                        MultiGaussianWalk)
+                        MultiGaussianWalk,
+                        ClassicalMGW)
 from cqo.algebra import projector
 import cqo.units as units
 import cqo.output as output
@@ -29,7 +30,7 @@ def create_mesh(N, alpha, width, resolution):
 
     return mesh, sample_points
 
-def main(resolution = 16):
+def main(resolution = 7, run_expansion=False):
 
     logging.basicConfig(level = logging.DEBUG)
 
@@ -61,12 +62,13 @@ def main(resolution = 16):
     lscale = np.sqrt(hbar / (2 * mass * omega))
 
     """
-    Magnetic gradient force: ~5e-22 N
+    Magnetic field gradient: 5e2 T m^-1
     (See Scala et al PRL 2013)
     """
-    F = 1e-20
-    F_enhancement = 1e2
-    F = F * F_enhancement
+    g_NV = 2
+    mu_B = 9.27e-24
+    dB_dz = 5e6
+    F = g_NV * mu_B * dB_dz
 
     alpha = 2 * F / mass / omega**2
 
@@ -89,15 +91,15 @@ def main(resolution = 16):
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 5e-1 # 0.5, 5, 50
+    occupancy = 25 # 0.5, 5, 50
 
     if occupancy < 1e-3:
         walk_state = CoherentState(alpha_0, mass*omega)
-        mgw_walk_state = CoherentGaussian(walk_state)
+        quantum_walk_state = CoherentGaussian(walk_state)
     else:
         beta = np.log((1/occupancy) + 1)/omega/hbar
         walk_state = ThermalState(beta, omega, mass)
-        mgw_walk_state = ThermalGaussian(walk_state)
+        quantum_walk_state = ThermalGaussian(walk_state)
 
     # Free flight time
 
@@ -142,12 +144,12 @@ def main(resolution = 16):
 
     # Quantum Walk
 
-    mgw_state = [[[mgw_walk_state], []],
+    quantum_state = [[[quantum_walk_state], []],
                  [[], []]]
 
-    mgw = MultiGaussianWalk(mgw_state, alpha, COIN_OP, gamma_T)
+    quantum_walk = MultiGaussianWalk(quantum_state, alpha, COIN_OP, gamma_T)
 
-    mgw.step(N)
+    quantum_walk.step(N, error=0)
 
     logging.info("Sampling {} points".format(mesh.shape[0:2]))
 
@@ -155,23 +157,69 @@ def main(resolution = 16):
         [
             [
                 [
-                    mgw.sample(x_vec[0], x_vec[1], s, s_) for s_ in [0,1]
+                    quantum_walk.sample(x_vec[0], x_vec[1], s, s_) for s_ in [0,1]
                 ] for s in [0,1]
             ] for x_vec in mesh_row
         ] for mesh_row in mesh])
 
-    # Evolve under free-flight
+    classical_walk = ClassicalMGW(quantum_walk_state, alpha)
 
-    """
-    calc_rho_final = lambda s, s_: \
-            expansion_protocol(rho_walk[:,:,s,s_],
-                               mesh,
-                               mass, omega,
-                               t_free)
+    classical_walk.step(N)
 
-    rho_final_0_0, coords_final = calc_rho_final(0,0)
-    rho_final_1_1, coords_final = calc_rho_final(1,1)
-    """
+    classical_pdf = np.array(
+        [classical_walk.sample(x) for x in sample_points]
+    )
+
+    if run_expansion:
+        # Evolve under free-flight
+
+        quantum_walk.quarter_period(mass, omega)
+
+        # Get edge values of mesh
+
+        x_min = mesh.min()
+
+        x_max = mesh.max()
+
+        # Add max and min velocities (from mgw)
+
+        momentum_list = np.array(quantum_walk.list_b())
+
+        v_min = momentum_list[:,0].min() / mass
+
+        v_max = momentum_list[:,0].max() / mass
+
+        quantum_walk.free_flight(mass, t_free)
+
+        x_min += v_min * t_free
+
+        x_max += v_max * t_free
+
+        # Generate final mesh
+
+        resolution_final = mesh.shape[0]
+
+        coords_final = np.linspace(x_min, x_max, resolution_final)
+
+        mesh_x_final, mesh_x__final = np.meshgrid(coords_final, coords_final)
+
+        mesh_final = np.array([mesh_x_final, mesh_x__final]).transpose(1,2,0)
+
+        rho_final_0_0 = np.array([
+            [
+                quantum_walk.sample(x_vec[0], x_vec[1], 0, 0) for x_vec in mesh_row
+            ] for mesh_row in mesh_final
+        ])
+
+
+        rho_final_1_1 = np.array([
+            [
+                quantum_walk.sample(x_vec[0], x_vec[1], 1, 1) for x_vec in mesh_row
+            ] for mesh_row in mesh_final
+        ])
+
+        #import pdb; pdb.set_trace()
+
 
     ### Output ###
 
@@ -181,31 +229,29 @@ def main(resolution = 16):
     rho_walk_dm = np.block([
         [rho_walk[:,:,0,0], rho_walk[:,:,0,1]],
         [rho_walk[:,:,1,0], rho_walk[:,:,1,1]]])
-    """
 
-    final_0 = np.diag(rho_final_0_0)
-    final_1 = np.diag(rho_final_1_1)
+    if run_expansion:
 
-    print("Displacement: {}\nWidth: {}".format(alpha, walk_state.width))
+        final_0 = np.diag(rho_final_0_0)
+        final_1 = np.diag(rho_final_1_1)
 
-    x_final = coords_final[:,0,1]
-    """
+        print("Displacement: {}\nWidth: {}".format(alpha, walk_state.width))
 
-    output.draw_pdf(sample_points, walk_0, walk_1, "Walk PDF",
+        x_final = coords_final
+
+    output.draw_walk(sample_points, walk_0, walk_1, classical_pdf, "Walk PDF",
                       show=False)
 
     output.draw_density_matrix(rho_walk_dm, "Walk Density Matrix",
-                               show=True)
+                               show=(not run_expansion))
 
+    if run_expansion:
 
-    """
+        output.draw_pdf(x_final, final_0, final_1, "Post-expansion PDF",
+                          show=False)
 
-    output.draw_pdf(x_final, final_0, final_1, "Post-expansion PDF",
-                      show=False)
-
-    output.draw_expansion(sample_points, walk_0, walk_1,
-                          x_final, final_0, final_1)
-    """
+        output.draw_expansion(sample_points, walk_0, walk_1,
+                              x_final, final_0, final_1)
 
 
 # Do not run if imported

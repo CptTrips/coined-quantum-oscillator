@@ -40,11 +40,11 @@ def draw_pdf(x, P_0, P_1, title, show=True):
 
     plt.figure()
 
-    plt.plot(x, P_0, label = "P_0")
+    plt.plot(x, P_0, ':', label = "P_0")
 
-    plt.plot(x, P_1, label = "P_1")
+    plt.plot(x, P_1, ':', label = "P_1")
 
-    plt.plot(x, P_0 + P_1, label = "P_tot")
+    plt.plot(x, P_0 + P_1, label = "Quantum")
 
     plt.legend()
 
@@ -85,3 +85,17 @@ def draw_expansion(x, P_0, P_1, x_exp, P_exp_0, P_exp_1):
     plt.legend()
 
     plt.show()
+
+
+def draw_walk(x, walk_0, walk_1, classical, title, show=True):
+
+    draw_pdf(x, walk_0, walk_1, title, show=False)
+
+    plt.plot(x, classical, label = "Classical")
+
+    plt.legend()
+
+    if show:
+        plt.show()
+
+

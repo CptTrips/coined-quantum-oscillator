@@ -174,5 +174,5 @@ def res_vs_occupancy():
 
 
 if __name__ == "__main__":
-    res_vs_occupancy()
+    width_vs_occupancy()
 
