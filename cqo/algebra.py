@@ -1,11 +1,11 @@
 import numpy as np
 from itertools import combinations
+import math
 
 
 def H(A):
     """Outputs the Hermitian conjugate of A"""
     return A.conj().T
-
 
 def projector(dim, i):
     """Builds the projection operator on to the ith eigenvector of a dimension
@@ -99,8 +99,6 @@ def tensor_swap(O, dim_A):
 
     return O_swapped
 
-
-
 def condition_subsystem(O, subsystem_vector):
     """Conditions on subsystem B of an operator.
 
@@ -127,7 +125,6 @@ def condition_subsystem(O, subsystem_vector):
 
     return O_A
 
-
 def postselect(O, vector):
 
     # Throw warning if O not valid density matrix
@@ -142,8 +139,6 @@ def postselect(O, vector):
         O_A = np.zeros(O_A.shape)
 
     return O_A, p
-
-
 
 def partial_trace(O, dim_A):
     """Partial trace of an operator
@@ -220,3 +215,17 @@ def binary_combinations(N, S):
     bc[i, c] = 1
 
     return bc
+
+
+
+def choose(n, r):
+
+    return math.factorial(n) / math.factorial(n - r) / math.factorial(r)
+
+def binomial_distribution(n):
+
+    choose_n = [choose(n, r) for r in range(n+1)]
+
+    norm = sum(choose_n)
+
+    return [ncr / norm for ncr in choose_n]

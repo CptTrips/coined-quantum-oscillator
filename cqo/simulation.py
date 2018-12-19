@@ -1,12 +1,12 @@
 import numpy as np
 import logging
 import cqo.units as units
-from cqo.algebra import H, condition_subsystem, postselect, binary_combinations
+from cqo.algebra import H, condition_subsystem, postselect, binary_combinations, binomial_distribution
 from itertools import product
 import math
 
 
-def walk_amplitudes(N, coin_op):
+def walk_amplitudes(N, coin_op, initial_state=[1,0]):
     if N < 1:
         raise ValueError('Number of walk steps must be >= 1')
 
@@ -20,7 +20,7 @@ def walk_amplitudes(N, coin_op):
     R = N // 2 + N % 2
     L = N // 2
 
-    amplitudes = [[1.0,0]]
+    amplitudes = [initial_state]
     amplitudes = np.concatenate((amplitudes, [[0,0]]*R), axis=0)
     if L:
         amplitudes = np.concatenate(([[0,0]]*L, amplitudes), axis=0)
@@ -655,7 +655,7 @@ class ClassicalMGW:
 
         self._step_count += step
 
-        self._binomial = self._binomial_distribution(self._step_count)
+        self._binomial = binomial_distribution(self._step_count)
 
         logging.debug("Binomial distribution: {}".format(self._binomial))
 

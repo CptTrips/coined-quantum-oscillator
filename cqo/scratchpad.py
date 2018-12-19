@@ -1,7 +1,8 @@
 import numpy as np
 from matplotlib import pyplot as plt
 from cqo.units import hbar, k_B
-from cqo.simulation import ThermalState, expansion_protocol
+from cqo.simulation import ThermalState, expansion_protocol, walk_amplitudes
+from cqo.algebra import binomial_distribution
 
 def eigenvalues_of_A():
 
@@ -149,7 +150,6 @@ def free_flight_coherence():
 
     plt.imshow(abs(density_matrix))
 
-
 def res_vs_occupancy():
 
     m = 3.5e3 * 4/3 * np.pi * (5e-8)**3
@@ -172,7 +172,54 @@ def res_vs_occupancy():
 
     plt.show()
 
+def coined_quantum_walk():
+
+    sites = [s for s in range(-50, 51)]
+
+    coin_op = np.array([[1,1],[1,-1]])/np.sqrt(2)
+
+    amplitudes = walk_amplitudes(100, coin_op)
+
+    probabilities = abs(amplitudes)**2
+
+    plt.figure()
+
+    plt.plot(sites, probabilities[:,0] + probabilities[:,1])
+
+    plt.yticks([])
+
+    plt.xlabel("Site")
+
+    plt.ylabel("Probability")
+
+    plt.title("Coined Quantum Walk N = 100")
+
+    plt.show()
+
+def classical_random_walk():
+
+    sites = [s for s in range(-50, 51)]
+
+    probabilities = binomial_distribution(100)
+
+    plt.figure()
+
+    plt.plot(sites, probabilities)
+
+    plt.xlabel("Site")
+
+    plt.ylabel("Probability")
+
+    plt.title("Classical Random Walk N = 100")
+
+    plt.yticks([])
+
+    plt.show()
+
+
 
 if __name__ == "__main__":
-    width_vs_occupancy()
+    coined_quantum_walk()
+
+    classical_random_walk()
 

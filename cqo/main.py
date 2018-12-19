@@ -36,7 +36,7 @@ def main(resolution = 7, run_expansion=False):
 
     ### Parameters ###
 
-    N = 5 # Walk steps
+    N = 6 # Walk steps
 
     hbar = units.hbar
 
@@ -47,7 +47,7 @@ def main(resolution = 7, run_expansion=False):
     See Pflanzer thesis eq 2.64 for trap frequency
     """
     density = 3.51e3
-    radius = 5e-8
+    radius = 1e-8
 
     mass = density * 4/3 * np.pi * radius**3
 
@@ -67,7 +67,7 @@ def main(resolution = 7, run_expansion=False):
     """
     g_NV = 2
     mu_B = 9.27e-24
-    dB_dz = 5e6
+    dB_dz = 2e6
     F = g_NV * mu_B * dB_dz
 
     alpha = 2 * F / mass / omega**2
@@ -79,7 +79,7 @@ def main(resolution = 7, run_expansion=False):
     Decoherence rate: 2*pi*1.1e4 /s. See Romero-Isart PRA 2011 eq. 10
     off-diagonals decay as exp(-gamma*T*(x-x`)^2)
     """
-    Gamma_sc = 2 * np.pi * 1.1e2
+    Gamma_sc = 2 * np.pi * 0.15e3
 
     gamma = Gamma_sc / lscale**2
 
@@ -91,7 +91,7 @@ def main(resolution = 7, run_expansion=False):
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 25 # 0.5, 5, 50
+    occupancy = 0 # 0.5, 2, 10, 50
 
     if occupancy < 1e-3:
         walk_state = CoherentState(alpha_0, mass*omega)
@@ -111,14 +111,14 @@ def main(resolution = 7, run_expansion=False):
 
     # Coin operators
 
-    Haddamard = (1/np.sqrt(2))*np.array([
+    Hadamard = (1/np.sqrt(2))*np.array([
         [1, 1],
         [1, -1]
     ])
 
     balanced_flip =(1/np.sqrt(2))*np.array([
-        [1, 1j],
-        [1j, 1]
+        [1, -1j],
+        [1j, -1]
     ])
 
     identity = np.eye(2)
@@ -128,9 +128,9 @@ def main(resolution = 7, run_expansion=False):
 
     # Initial states
 
-    COIN_OP = balanced_flip
+    COIN_OP = Hadamard
 
-    spin_state = SpinState(projector(2,0))
+    spin_state = SpinState(np.eye(2)) #SpinState(projector(2,1))
 
     # Mesh
 
@@ -145,7 +145,7 @@ def main(resolution = 7, run_expansion=False):
     # Quantum Walk
 
     quantum_state = [[[quantum_walk_state], []],
-                 [[], []]]
+                 [[], [quantum_walk_state]]]
 
     quantum_walk = MultiGaussianWalk(quantum_state, alpha, COIN_OP, gamma_T)
 
