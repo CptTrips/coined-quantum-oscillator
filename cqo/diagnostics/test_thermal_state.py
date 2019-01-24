@@ -2,7 +2,7 @@ from matplotlib import cm
 from mpl_toolkits.mplot3d import Axes3D
 from matplotlib import pyplot as plt
 from itertools import product
-from cqo.simulation import ThermalState
+from cqo.simulation import ThermalState, CoherentState
 from cqo.units import hbar
 import numpy as np
 
@@ -10,25 +10,30 @@ import numpy as np
 
 output_folder = '/home/matthewf/PhD/programming/coined-quantum-oscillator/output'
 
-mass = 3.51e3 * 4/3 * np.pi * (5e-8)**3
-omega = 2 * np.pi * 1.5e5
-n = 10
-beta = np.log(1 + 1/n) / (omega*hbar)
+def beta(n, omega):
 
-rho = ThermalState(beta, omega, mass)
+    return np.log(1 + 1/n) / (omega*hbar)
+
+mass = 1#3.51e3 * 4/3 * np.pi * (5e-8)**3
+omega = 1#2 * np.pi * 1.5e5
+n = 0.001
+
+rho = ThermalState(beta(n, omega), omega, mass)
 
 print(rho.sample(0,0) / rho.sample(rho.width, rho.width))
 
 limit = 3*rho.width
 
-N = 4
+N = 3
+
+base_res = 32
 
 fidelity = np.zeros((N,))
 normalisation = np.zeros((N,))
 
 for i in range(1,N):
 
-    res = 16 * 2**i
+    res = base_res * 2**i
 
     x_array = np.linspace(-limit, limit, res)
 
@@ -60,5 +65,83 @@ fig2 = plt.figure()
 plt.plot(fidelity, normalisation)
 plt.ylim(ymin=0)
 plt.title('Norm vs resolution');
+
+# Normalisation vs temperature
+def norm(thermal_state):
+
+    limit = 3 * thermal_state.width
+
+    x_array = np.linspace(-limit, limit, 16)
+
+    pdf = [thermal_state.sample(x,x) for x in x_array]
+
+    return np.trapz(pdf, x_array)
+
+n_array = 10**np.arange(-6, 0.75, 0.25)
+
+beta_array = beta(n_array, omega)
+
+norm_array = [norm(ThermalState(b, omega, mass)) for b in beta_array]
+
+plt.figure()
+plt.subplot(2,1,1)
+plt.plot(1/beta_array, norm_array, label='Norm')
+plt.plot([0, 1/beta_array[-1]], [1, 1], '--')
+plt.ylim(ymin=0, ymax=1.1)
+plt.xlim(xmin=0)
+plt.title('Norm vs Temperature')
+plt.xlabel('1/beta')
+plt.legend()
+
+# Width vs temperature (classical high temperature asymptotics)
+
+width_array = [ThermalState(b, omega, mass).width for b in beta_array]
+
+c_width_array = [ThermalState(b, omega, mass).coherence_width for b in beta_array]
+
+high_t_width = np.sqrt(1 / (mass * omega**2 * beta_array))
+
+gs_width = np.sqrt(hbar/(2*mass*omega))
+
+plt.subplot(2,2,3)
+plt.plot(1/beta_array, width_array, label='QHO width')
+plt.plot(1/beta_array, high_t_width, label='CHO width')
+plt.plot(1/beta_array, c_width_array, label='Coherence length')
+plt.plot([0, 1/beta_array[-1]], [gs_width]*2, '--', label='Quantum width')
+plt.xlim(xmin=0)
+plt.title('Width vs Temperature')
+plt.xlabel('1/beta')
+plt.legend()
+
+plt.subplot(2,2,4)
+plt.plot(1/beta_array, width_array/high_t_width)
+plt.plot([0,1/beta_array[-1]], [1,1], '--')
+plt.xlim(xmin=0)
+plt.title('Classical width / Quantum Width')
+plt.xlabel('1/beta')
+
+# Comparison of low-T state with ground state
+
+b = 1e35
+
+low_t_state = ThermalState(b, omega, mass)
+
+x_array = np.linspace(-3*low_t_state.width, 3*low_t_state.width)
+
+gs_pdf = [CoherentState(0, mass * omega).sample(x, x) for x in x_array]
+
+low_t_pdf = [low_t_state.sample(x, x) for x in x_array]
+
+plt.figure()
+plt.plot(x_array, gs_pdf, '--', label='Ground State')
+plt.plot(x_array, low_t_pdf, label='Low T State')
+plt.plot([low_t_state.width]*2, [0, max(low_t_pdf)], '--')
+plt.legend()
+plt.title('Low T State vs Ground State')
+
+w = low_t_state.width
+exp_ratio = low_t_state.sample(0,0) / low_t_state.sample(w, w)
+
+print('Exponent: ', np.log(exp_ratio))
 
 plt.show()

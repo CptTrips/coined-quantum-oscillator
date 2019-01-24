@@ -1,7 +1,7 @@
-from simulation import CoherentState
+from cqo.simulation import CoherentState
 import numpy as np
 from matplotlib import pyplot as plt
-from units import hbar
+from cqo.units import hbar
 
 N = 3
 

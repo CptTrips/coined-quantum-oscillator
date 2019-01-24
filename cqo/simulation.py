@@ -20,6 +20,7 @@ def walk_amplitudes(N, coin_op, initial_state=[1,0]):
     R = N // 2 + N % 2
     L = N // 2
 
+    initial_state = np.array(initial_state, dtype = np.dtype(np.complex128))
     amplitudes = [initial_state]
     amplitudes = np.concatenate((amplitudes, [[0,0]]*R), axis=0)
     if L:
@@ -38,11 +39,11 @@ def walk_amplitudes(N, coin_op, initial_state=[1,0]):
         active_amplitudes = amplitudes[s:e,:].view()
         active_coin_op = coin_op_r[s:e,:,:].view()
 
-        # Coin op
+        # Apply the coin op
 
         active_amplitudes[:,:] = np.einsum('nij,nj->ni', active_coin_op, active_amplitudes)
 
-        # Shift R/L
+        # Apply the conditional shift
 
         if i % 2:
             # shift L
@@ -76,7 +77,8 @@ def final_state(N, x, x_, s, s_, walk_state, spin_state, coin_amplitudes, alpha,
         N (int): Number of steps in the quantum walk
         x, x_ (float): Spatial matrix element to evaluate
         s, s_ (int): Spin matrix element (s, s_ \in {0,1})
-        initial_state: Initial density matrix
+        walk_state: Initial walker state
+        spin_state: Initial coin SpinState
         coin_amplitudes (2x2 ndarray): Elements of the coin operator
         alpha (float): Magnitude of displacement
         decoherence_rate (float): Decoherence rate
@@ -203,10 +205,6 @@ class CoherentState:
 
     def state(self, x):
 
-        h = units.hbar
-
-        mw = self.m_omega
-
         a = self.alpha
 
         w = self.sigma
@@ -251,8 +249,16 @@ class ThermalState:
         else:
             self.Z = 1/(1-t)
 
-        self.N = np.sqrt(mass * omega / (np.pi * units.hbar * self.detA))
-        self.N *= 4/self.Z
+        # Normalisation of coherent state
+        dx = np.sqrt(2*units.hbar / (mass * omega))
+
+        self.N = np.sqrt(2 / (np.pi * dx**2))
+
+        # Evaluation of Gaussian integral
+        self.N *= 4 / np.sqrt(self.detA)
+
+        # Normalisation by partition function
+        self.N /= self.Z
 
         self.mw = mass * omega
 
@@ -266,15 +272,18 @@ class ThermalState:
 
     def _width(self):
 
+        # Change a from x, x' basis to X, \delta x
         H = np.array([
             [0.5, 0.5],
-            [0.5, -0.5]])
+            [1, -1]])
 
-        width_matrix = H @ self.a @ H
+        width_matrix = H @ self.a @ H.T
 
-        width = np.sqrt(0.5/width_matrix[0,0])
+        width = np.sqrt(1/(2*width_matrix[0,0]))
 
-        coherence_width = np.sqrt(0.5/width_matrix[1,1])
+        width /= 2
+
+        coherence_width = np.sqrt(1/(2*width_matrix[1,1]))
 
         return width, coherence_width
 
@@ -451,6 +460,7 @@ class MultiGaussianWalk:
 
     def _coin(self):
 
+        # Container for Coin-Walker state after coin update rule
         new_state = [[[], []],
                      [[], []]]
 

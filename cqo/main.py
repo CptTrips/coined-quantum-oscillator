@@ -30,13 +30,13 @@ def create_mesh(N, alpha, width, resolution):
 
     return mesh, sample_points
 
-def main(resolution = 7, run_expansion=False):
+def main(resolution = 10, run_expansion=False):
 
     logging.basicConfig(level = logging.DEBUG)
 
     ### Parameters ###
 
-    N = 6 # Walk steps
+    N = 4 # Walk steps
 
     hbar = units.hbar
 
@@ -65,9 +65,9 @@ def main(resolution = 7, run_expansion=False):
     Magnetic field gradient: 5e2 T m^-1
     (See Scala et al PRL 2013)
     """
+    dB_dz = 2e6
     g_NV = 2
     mu_B = 9.27e-24
-    dB_dz = 2e6
     F = g_NV * mu_B * dB_dz
 
     alpha = 2 * F / mass / omega**2
@@ -79,7 +79,7 @@ def main(resolution = 7, run_expansion=False):
     Decoherence rate: 2*pi*1.1e4 /s. See Romero-Isart PRA 2011 eq. 10
     off-diagonals decay as exp(-gamma*T*(x-x`)^2)
     """
-    Gamma_sc = 2 * np.pi * 0.15e3
+    Gamma_sc = 2 * np.pi * 1.15e0
 
     gamma = Gamma_sc / lscale**2
 
@@ -91,7 +91,7 @@ def main(resolution = 7, run_expansion=False):
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 0 # 0.5, 2, 10, 50
+    occupancy = 20 # 0.5, 2, 10, 50
 
     if occupancy < 1e-3:
         walk_state = CoherentState(alpha_0, mass*omega)
@@ -130,7 +130,7 @@ def main(resolution = 7, run_expansion=False):
 
     COIN_OP = Hadamard
 
-    spin_state = SpinState(np.eye(2)) #SpinState(projector(2,1))
+    #spin_state = SpinState(np.eye(2)) #SpinState(projector(2,1))
 
     # Mesh
 
@@ -144,8 +144,8 @@ def main(resolution = 7, run_expansion=False):
 
     # Quantum Walk
 
-    quantum_state = [[[quantum_walk_state], []],
-                 [[], [quantum_walk_state]]]
+    quantum_state = [[[0.5*quantum_walk_state], []],
+                    [[], [0.5*quantum_walk_state]]]
 
     quantum_walk = MultiGaussianWalk(quantum_state, alpha, COIN_OP, gamma_T)
 
@@ -160,7 +160,10 @@ def main(resolution = 7, run_expansion=False):
                     quantum_walk.sample(x_vec[0], x_vec[1], s, s_) for s_ in [0,1]
                 ] for s in [0,1]
             ] for x_vec in mesh_row
-        ] for mesh_row in mesh])
+        ] for mesh_row in mesh
+    ])
+
+    # Classical walk
 
     classical_walk = ClassicalMGW(quantum_walk_state, alpha)
 
@@ -169,6 +172,8 @@ def main(resolution = 7, run_expansion=False):
     classical_pdf = np.array(
         [classical_walk.sample(x) for x in sample_points]
     )
+
+    # Free-flight expansion
 
     if run_expansion:
         # Evolve under free-flight
@@ -218,26 +223,36 @@ def main(resolution = 7, run_expansion=False):
             ] for mesh_row in mesh_final
         ])
 
-        #import pdb; pdb.set_trace()
-
 
     ### Output ###
 
+    # Sub-normalised PDFs conditioned on spin
     walk_0 = np.diag(rho_walk[:,:,0,0])
     walk_1 = np.diag(rho_walk[:,:,1,1])
 
+    # Full CW density matrix
     rho_walk_dm = np.block([
         [rho_walk[:,:,0,0], rho_walk[:,:,0,1]],
         [rho_walk[:,:,1,0], rho_walk[:,:,1,1]]])
 
     if run_expansion:
-
         final_0 = np.diag(rho_final_0_0)
         final_1 = np.diag(rho_final_1_1)
 
         print("Displacement: {}\nWidth: {}".format(alpha, walk_state.width))
 
         x_final = coords_final
+
+    # Check total probability for debugging purposes
+    walk_pdf = walk_0 + walk_1
+
+    total_P_quantum = np.trapz(walk_pdf, sample_points)
+
+    total_P_classical = np.trapz(classical_pdf, sample_points)
+
+    logging.debug('Total quantum probability: {}'.format(total_P_quantum))
+
+    logging.debug('Total classical probability: {}'.format(total_P_classical))
 
     output.draw_walk(sample_points, walk_0, walk_1, classical_pdf, "Walk PDF",
                       show=False)
@@ -246,7 +261,6 @@ def main(resolution = 7, run_expansion=False):
                                show=(not run_expansion))
 
     if run_expansion:
-
         output.draw_pdf(x_final, final_0, final_1, "Post-expansion PDF",
                           show=False)
 

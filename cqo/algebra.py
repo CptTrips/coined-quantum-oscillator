@@ -216,8 +216,6 @@ def binary_combinations(N, S):
 
     return bc
 
-
-
 def choose(n, r):
 
     return math.factorial(n) / math.factorial(n - r) / math.factorial(r)
