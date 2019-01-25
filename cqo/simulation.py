@@ -713,7 +713,7 @@ class Gaussian:
 
         x_shifted = x_vec - self.b
 
-        exponent = -0.5 * x_shifted.T @ self.A @ x_shifted
+        exponent = - x_shifted.T @ self.A @ x_shifted
 
         if exponent < log_error:
             return 0

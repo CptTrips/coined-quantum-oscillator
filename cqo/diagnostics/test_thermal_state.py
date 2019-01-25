@@ -20,8 +20,6 @@ n = 0.001
 
 rho = ThermalState(beta(n, omega), omega, mass)
 
-print(rho.sample(0,0) / rho.sample(rho.width, rho.width))
-
 limit = 3*rho.width
 
 N = 3
@@ -69,7 +67,7 @@ plt.title('Norm vs resolution');
 # Normalisation vs temperature
 def norm(thermal_state):
 
-    limit = 3 * thermal_state.width
+    limit = 5 * thermal_state.width
 
     x_array = np.linspace(-limit, limit, 16)
 
@@ -139,9 +137,22 @@ plt.plot([low_t_state.width]*2, [0, max(low_t_pdf)], '--')
 plt.legend()
 plt.title('Low T State vs Ground State')
 
-w = low_t_state.width
-exp_ratio = low_t_state.sample(0,0) / low_t_state.sample(w, w)
+# Attribute width vs calculated width
 
-print('Exponent: ', np.log(exp_ratio))
+def calculate_width(t):
+
+    exponent = np.log(t.sample(0,0) / t.sample(t.width, t.width))
+
+    return t.width * np.sqrt( 1 / (2 * exponent))
+
+thermal_state_array = [ThermalState(b, omega, mass) for b in beta_array]
+
+calculated_width_array = [calculate_width(t) for t in thermal_state_array]
+
+plt.figure()
+plt.plot(1/beta_array, calculated_width_array, label='Calculated width')
+plt.plot(1/beta_array, width_array, '--', 'Width attribute')
+plt.legend()
+plt.xlabel('1/beta')
 
 plt.show()

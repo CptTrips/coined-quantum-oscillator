@@ -30,13 +30,13 @@ def create_mesh(N, alpha, width, resolution):
 
     return mesh, sample_points
 
-def main(resolution = 10, run_expansion=False):
+def main(resolution = 16, run_expansion=False):
 
     logging.basicConfig(level = logging.DEBUG)
 
     ### Parameters ###
 
-    N = 4 # Walk steps
+    N = 3 # Walk steps
 
     hbar = units.hbar
 
@@ -65,7 +65,7 @@ def main(resolution = 10, run_expansion=False):
     Magnetic field gradient: 5e2 T m^-1
     (See Scala et al PRL 2013)
     """
-    dB_dz = 2e6
+    dB_dz = 2e5
     g_NV = 2
     mu_B = 9.27e-24
     F = g_NV * mu_B * dB_dz
@@ -79,7 +79,7 @@ def main(resolution = 10, run_expansion=False):
     Decoherence rate: 2*pi*1.1e4 /s. See Romero-Isart PRA 2011 eq. 10
     off-diagonals decay as exp(-gamma*T*(x-x`)^2)
     """
-    Gamma_sc = 2 * np.pi * 1.15e0
+    Gamma_sc = 2 * np.pi * 1.15e0 * 0
 
     gamma = Gamma_sc / lscale**2
 
@@ -91,7 +91,7 @@ def main(resolution = 10, run_expansion=False):
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 20 # 0.5, 2, 10, 50
+    occupancy = 10 # 0.5, 2, 10, 50
 
     if occupancy < 1e-3:
         walk_state = CoherentState(alpha_0, mass*omega)
