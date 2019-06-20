@@ -17,8 +17,6 @@ def walk_amplitudes(N, coin_op, initial_state=[1,0]):
         raise ValueError('Coin operator must be unitary')
 
     # Number of sites to consider to the left and right of the initial site
-    #R = N // 2 + N % 2
-    #L = 0 N // 2
     R = N
     L = 0
 
@@ -35,9 +33,6 @@ def walk_amplitudes(N, coin_op, initial_state=[1,0]):
     for i in range(N):
 
         # Take the active part of the state & coin op
-
-        #s = L - i // 2
-        #e = L + i // 2 + i % 2 + 1
 
         s = 0
         e = i + 1
