@@ -3,6 +3,7 @@ from matplotlib import pyplot as plt
 from cqo.units import hbar, k_B
 from cqo.simulation import ThermalState, expansion_protocol, walk_amplitudes
 from cqo.algebra import binomial_distribution
+from cqo import model_cqw
 
 def eigenvalues_of_A():
 
@@ -219,7 +220,5 @@ def classical_random_walk():
 
 
 if __name__ == "__main__":
-    coined_quantum_walk()
 
-    classical_random_walk()
-
+    print(model_cqw.run_model())

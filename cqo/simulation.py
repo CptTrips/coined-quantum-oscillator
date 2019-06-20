@@ -16,10 +16,13 @@ def walk_amplitudes(N, coin_op, initial_state=[1,0]):
     if not np.allclose(coin_op @ H(coin_op), np.eye(2)):
         raise ValueError('Coin operator must be unitary')
 
-    # Build initial state
-    R = N // 2 + N % 2
-    L = N // 2
+    # Number of sites to consider to the left and right of the initial site
+    #R = N // 2 + N % 2
+    #L = 0 N // 2
+    R = N
+    L = 0
 
+    # Build initial state
     initial_state = np.array(initial_state, dtype = np.dtype(np.complex128))
     amplitudes = [initial_state]
     amplitudes = np.concatenate((amplitudes, [[0,0]]*R), axis=0)
@@ -33,8 +36,11 @@ def walk_amplitudes(N, coin_op, initial_state=[1,0]):
 
         # Take the active part of the state & coin op
 
-        s = L - i // 2
-        e = L + i // 2 + i % 2 + 1
+        #s = L - i // 2
+        #e = L + i // 2 + i % 2 + 1
+
+        s = 0
+        e = i + 1
 
         active_amplitudes = amplitudes[s:e,:].view()
         active_coin_op = coin_op_r[s:e,:,:].view()
@@ -45,7 +51,7 @@ def walk_amplitudes(N, coin_op, initial_state=[1,0]):
 
         # Apply the conditional shift
 
-        if i % 2:
+        if False: #i % 2:
             # shift L
             amplitudes[s-1:e-1, 1] = amplitudes[s:e,1]
             amplitudes[e-1,1] = 0

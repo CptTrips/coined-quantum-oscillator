@@ -30,36 +30,61 @@ def create_mesh(N, alpha, width, resolution):
 
     return mesh, sample_points
 
+def calculate_trap_frequency(dielectric_const, P_t, density, W_t):
+
+    return np.sqrt(4 * dielectric_const * P_t / (density * units.c * np.pi * W_t**4))
+
+def calculate_decoherence_rate(omega_t, V, dielectric_const, k_L, W_t, P_t):
+
+    return omega_t * dielectric_const * W_t**2 * V * k_L**5 / (24 * np.pi)
+
 def main(resolution = 16, run_expansion=False):
 
     logging.basicConfig(level = logging.DEBUG)
 
     ### Parameters ###
 
-    N = 3 # Walk steps
+    N = 8 # Walk steps
 
     hbar = units.hbar
 
 
     """
+    Particle Properties
+
     Density of diamond: 3.51e3 kg/m^3
     Nanoparticle radius: ~1e-8m
+    Refractive index of diamond: 2.4175 (at 0.5nm)
     See Pflanzer thesis eq 2.64 for trap frequency
     """
     density = 3.51e3
-    radius = 1e-8
+    radius = 2e-8
+    refractive_index = 2.4175
 
-    mass = density * 4/3 * np.pi * radius**3
+    dielectric_const = 3 * (refractive_index**2 - 1) / (refractive_index**2 + 2)
+    V = 4/3 * np.pi * radius**3
+    mass = density * V
 
 
     """
-    Trap frequencies: 0.1-1 Mhz
+    Laser/Optics Properties
     """
-    omega = 2 * np.pi * 1.5e5
+    wavelength = 1.064e-6
+    P_t = 1.5e-3 # Laser power
+    NA = 0.9
+
+    W_t = wavelength / (np.pi * NA) # Laser beam waist
+
+
+    """
+    Trap Properties
+    """
+    omega = calculate_trap_frequency(dielectric_const, P_t, density, W_t)
 
     tscale = (2*np.pi)/omega
 
     lscale = np.sqrt(hbar / (2 * mass * omega))
+
 
     """
     Magnetic field gradient: 5e2 T m^-1
@@ -72,26 +97,15 @@ def main(resolution = 16, run_expansion=False):
 
     alpha = 2 * F / mass / omega**2
 
+    #alpha = lscale
+
     alpha_0 = 0
-
-
-    """
-    Decoherence rate: 2*pi*1.1e4 /s. See Romero-Isart PRA 2011 eq. 10
-    off-diagonals decay as exp(-gamma*T*(x-x`)^2)
-    """
-    Gamma_sc = 2 * np.pi * 1.15e0 * 0
-
-    gamma = Gamma_sc / lscale**2
-
-    T = tscale / 2
-
-    gamma_T = gamma * T
 
 
     """
     Reported thermal occupancy: 65 phonons (From Photon Recoil paper)
     """
-    occupancy = 10 # 0.5, 2, 10, 50
+    occupancy = 20 # 0.5, 2, 10, 50
 
     if occupancy < 1e-3:
         walk_state = CoherentState(alpha_0, mass*omega)
@@ -100,6 +114,29 @@ def main(resolution = 16, run_expansion=False):
         beta = np.log((1/occupancy) + 1)/omega/hbar
         walk_state = ThermalState(beta, omega, mass)
         quantum_walk_state = ThermalGaussian(walk_state)
+
+
+    """
+    Decoherence rate: 2*pi*1.1e4 /s. See Romero-Isart PRA 2011 eq. 10
+    off-diagonals decay as exp(-gamma*T*(x-x`)^2)
+    """
+    Gamma_sc = calculate_decoherence_rate(omega, V, dielectric_const, 2*np.pi/wavelength, W_t, P_t)
+
+    #coherent_cycles = 10
+    #Gamma_sc = 1 / (coherent_cycles * occupancy * tscale)
+
+    gamma = Gamma_sc / lscale**2
+
+    T = tscale / 2
+
+    gamma_T = gamma * T
+
+
+    print('Trap frequency: 2*pi * {:.3g}\n'.format(1/tscale) +
+          'Decoherence rate: {:.3g}\n'.format(gamma) +
+          'Decoherence rate (at displacement): {:.3g} ({:.3g} steps)\n'.format(
+              gamma * alpha**2, 2/tscale/(gamma*alpha**2)
+          ))
 
     # Free flight time
 
@@ -144,8 +181,8 @@ def main(resolution = 16, run_expansion=False):
 
     # Quantum Walk
 
-    quantum_state = [[[0.5*quantum_walk_state], []],
-                    [[], [0.5*quantum_walk_state]]]
+    quantum_state = [[[quantum_walk_state], []],
+                    [[], []]]
 
     quantum_walk = MultiGaussianWalk(quantum_state, alpha, COIN_OP, gamma_T)
 
@@ -254,7 +291,13 @@ def main(resolution = 16, run_expansion=False):
 
     logging.debug('Total classical probability: {}'.format(total_P_classical))
 
-    output.draw_walk(sample_points, walk_0, walk_1, classical_pdf, "Walk PDF",
+    param_string = "" #(
+#        'm = ' +
+#        'dB/dz = ' +
+#        'n = '
+#    )
+
+    output.draw_walk(sample_points, walk_0, walk_1, classical_pdf, "Walk PDF\n"+param_string,
                       show=False)
 
     output.draw_density_matrix(rho_walk_dm, "Walk Density Matrix",

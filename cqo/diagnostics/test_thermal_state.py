@@ -75,7 +75,7 @@ def norm(thermal_state):
 
     return np.trapz(pdf, x_array)
 
-n_array = 10**np.arange(-6, 0.75, 0.25)
+n_array = 10**np.arange(-6, 1.5, 0.25)
 
 beta_array = beta(n_array, omega)
 
@@ -102,13 +102,14 @@ high_t_width = np.sqrt(1 / (mass * omega**2 * beta_array))
 gs_width = np.sqrt(hbar/(2*mass*omega))
 
 plt.subplot(2,2,3)
-plt.plot(1/beta_array, width_array, label='QHO width')
-plt.plot(1/beta_array, high_t_width, label='CHO width')
-plt.plot(1/beta_array, c_width_array, label='Coherence length')
-plt.plot([0, 1/beta_array[-1]], [gs_width]*2, '--', label='Quantum width')
+plt.plot(n_array, width_array, label='QHO width')
+plt.plot(n_array, high_t_width, label='CHO width')
+plt.plot(n_array, c_width_array, label='Coherence length')
+plt.plot([0, n_array[-1]], [gs_width]*2, '--', label='Quantum width')
 plt.xlim(xmin=0)
+plt.ylim(ymin=0)
 plt.title('Width vs Temperature')
-plt.xlabel('1/beta')
+plt.xlabel('<n>')
 plt.legend()
 
 plt.subplot(2,2,4)
@@ -154,5 +155,24 @@ plt.plot(1/beta_array, calculated_width_array, label='Calculated width')
 plt.plot(1/beta_array, width_array, '--', 'Width attribute')
 plt.legend()
 plt.xlabel('1/beta')
+
+
+# Width vs theoretical value (Quantum Optics in Phase Space)
+
+def theoretical_width(beta, omega, m):
+
+    return np.sqrt(hbar / (2 * m * omega) / np.tanh(beta * hbar * omega/2))
+
+theoretical_width_array = [theoretical_width(b, omega, mass) for b in beta_array]
+
+plt.figure()
+
+plt.subplot(2,1,1)
+plt.plot(beta_array, width_array, label='State width')
+plt.plot(beta_array, theoretical_width_array, label='Theoretical width')
+plt.legend()
+
+plt.subplot(2,1,2)
+plt.plot(beta_array, np.array(width_array)/np.array(theoretical_width_array))
 
 plt.show()

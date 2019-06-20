@@ -93,6 +93,9 @@ def draw_walk(x, walk_0, walk_1, classical, title, show=True):
 
     plt.plot(x, classical, label = "Classical")
 
+    plt.xlabel("Site")
+    plt.ylabel("Probability")
+
     plt.legend()
 
     if show:
