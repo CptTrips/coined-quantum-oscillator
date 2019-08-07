@@ -34,17 +34,17 @@ def calculate_trap_frequency(dielectric_const, P_t, density, W_t):
 
     return np.sqrt(4 * dielectric_const * P_t / (density * units.c * np.pi * W_t**4))
 
-def calculate_decoherence_rate(omega_t, V, dielectric_const, k_L, W_t, P_t):
+def calculate_decoherence_rate(omega_t, rho, V, dielectric_const, k_L, W_t):
 
-    return omega_t * dielectric_const * W_t**2 * V * k_L**5 / (24 * np.pi)
+    return omega_t**2 * dielectric_const * W_t**2 * rho * V**2 * k_L**5 / (12 * np.pi * units.hbar)
 
-def main(resolution = 16, run_expansion=False):
+def main(resolution = 32, run_expansion=False):
 
-    logging.basicConfig(level = logging.DEBUG)
+    logging.basicConfig(level = logging.INFO)
 
     ### Parameters ###
 
-    N = 8 # Walk steps
+    N = 2 # Walk steps
 
     hbar = units.hbar
 
@@ -58,7 +58,7 @@ def main(resolution = 16, run_expansion=False):
     See Pflanzer thesis eq 2.64 for trap frequency
     """
     density = 3.51e3
-    radius = 2e-8
+    radius = 2.5e-8
     refractive_index = 2.4175
 
     dielectric_const = 3 * (refractive_index**2 - 1) / (refractive_index**2 + 2)
@@ -69,8 +69,8 @@ def main(resolution = 16, run_expansion=False):
     """
     Laser/Optics Properties
     """
-    wavelength = 1.064e-6
-    P_t = 1.5e-3 # Laser power
+    wavelength = 1.55e-6
+    P_t = 5.9e-3 # Laser power
     NA = 0.9
 
     W_t = wavelength / (np.pi * NA) # Laser beam waist
@@ -79,7 +79,7 @@ def main(resolution = 16, run_expansion=False):
     """
     Trap Properties
     """
-    omega = calculate_trap_frequency(dielectric_const, P_t, density, W_t)
+    omega = 2 * np.pi * 6.5e4
 
     tscale = (2*np.pi)/omega
 
@@ -120,12 +120,7 @@ def main(resolution = 16, run_expansion=False):
     Decoherence rate: 2*pi*1.1e4 /s. See Romero-Isart PRA 2011 eq. 10
     off-diagonals decay as exp(-gamma*T*(x-x`)^2)
     """
-    Gamma_sc = calculate_decoherence_rate(omega, V, dielectric_const, 2*np.pi/wavelength, W_t, P_t)
-
-    #coherent_cycles = 10
-    #Gamma_sc = 1 / (coherent_cycles * occupancy * tscale)
-
-    gamma = Gamma_sc / lscale**2
+    gamma = calculate_decoherence_rate(omega, density, V, dielectric_const, 2*np.pi/wavelength, W_t)
 
     T = tscale / 2
 
@@ -181,12 +176,13 @@ def main(resolution = 16, run_expansion=False):
 
     # Quantum Walk
 
-    quantum_state = [[[quantum_walk_state], []],
-                    [[], []]]
+    quantum_state = [[[0.5*quantum_walk_state], []],
+                    [[], [0.5*quantum_walk_state]]]
 
     quantum_walk = MultiGaussianWalk(quantum_state, alpha, COIN_OP, gamma_T)
 
     quantum_walk.step(N, error=0)
+    #quantum_walk._coin()
 
     logging.info("Sampling {} points".format(mesh.shape[0:2]))
 
@@ -202,13 +198,19 @@ def main(resolution = 16, run_expansion=False):
 
     # Classical walk
 
-    classical_walk = ClassicalMGW(quantum_walk_state, alpha)
+    classical_walk = MultiGaussianWalk(quantum_state, alpha, COIN_OP, 1e9*gamma_T)
+
+    #classical_walk = ClassicalMGW(quantum_walk_state, alpha)
 
     classical_walk.step(N)
 
-    classical_pdf = np.array(
-        [classical_walk.sample(x) for x in sample_points]
-    )
+#    classical_pdf = np.array(
+#        [classical_walk.sample(x) for x in sample_points]
+#    )
+
+    classical_pdf = np.array([
+        classical_walk.sample(x, x, 0, 0) + classical_walk.sample(x, x, 1, 1) for x in sample_points
+    ])
 
     # Free-flight expansion
 
@@ -300,7 +302,7 @@ def main(resolution = 16, run_expansion=False):
     output.draw_walk(sample_points, walk_0, walk_1, classical_pdf, "Walk PDF\n"+param_string,
                       show=False)
 
-    output.draw_density_matrix(rho_walk_dm, "Walk Density Matrix",
+    output.draw_coin_walker_dm(rho_walk, "Walk Density Matrix",
                                show=(not run_expansion))
 
     if run_expansion:

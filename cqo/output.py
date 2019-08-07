@@ -65,6 +65,33 @@ def draw_density_matrix(rho, title, show=True):
     if show:
         plt.show()
 
+def draw_coin_walker_dm(rho_WC, title, show=True):
+
+    plt.figure(figsize=(8,8))
+
+    plt.title(title)
+
+    for i in range(1,5):
+
+        row = (i-1) % 2
+
+        column = int(i > 2)
+
+        ax = plt.subplot(2,2,i)
+
+        plt.imshow(abs(rho_WC[:,:,row,column]))
+
+        ax.set_title(r"$\rho_W^{{{}{}}}(x, x')$".format(row, column))
+
+        if (not column):
+            ax.axes.get_xaxis().set_visible(False)
+        if row:
+            ax.axes.get_yaxis().set_visible(False)
+
+    plt.tight_layout()
+
+    if show:
+        plt.show()
 
 def draw_expansion(x, P_0, P_1, x_exp, P_exp_0, P_exp_1):
 
