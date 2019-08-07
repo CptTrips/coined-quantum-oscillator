@@ -8,8 +8,6 @@ import numpy as np
 
 # Display a thermal density matrix and show it is normalised to 1
 
-output_folder = '/home/matthewf/PhD/programming/coined-quantum-oscillator/output'
-
 def beta(n, omega):
 
     return np.log(1 + 1/n) / (omega*hbar)
@@ -47,22 +45,22 @@ for i in range(1,N):
 
     X, Y = np.meshgrid(x_array, x_array)
 
-    fig = plt.figure()
+    #fig = plt.figure()
 
-    plt.subplot(2,1,1)
-    plt.pcolor(X, Y, np.abs(density_matrix))
-    plt.colorbar()
+    #plt.subplot(2,1,1)
+    #plt.pcolor(X, Y, np.abs(density_matrix))
+    #plt.colorbar()
 
-    plt.subplot(2,1,2)
-    plt.plot(np.diag(X), np.diag(density_matrix))
+    #plt.subplot(2,1,2)
+    #plt.plot(np.diag(X), np.diag(density_matrix))
 
-    plt.title('\\rho(x,x\')')
+    #plt.title('\\rho(x,x\')')
 
 
-fig2 = plt.figure()
-plt.plot(fidelity, normalisation)
-plt.ylim(ymin=0)
-plt.title('Norm vs resolution');
+#fig2 = plt.figure()
+#plt.plot(fidelity, normalisation)
+#plt.ylim(ymin=0)
+#plt.title('Norm vs resolution');
 
 # Normalisation vs temperature
 def norm(thermal_state):
@@ -131,12 +129,12 @@ gs_pdf = [CoherentState(0, mass * omega).sample(x, x) for x in x_array]
 
 low_t_pdf = [low_t_state.sample(x, x) for x in x_array]
 
-plt.figure()
-plt.plot(x_array, gs_pdf, '--', label='Ground State')
-plt.plot(x_array, low_t_pdf, label='Low T State')
-plt.plot([low_t_state.width]*2, [0, max(low_t_pdf)], '--')
-plt.legend()
-plt.title('Low T State vs Ground State')
+#plt.figure()
+#plt.plot(x_array, gs_pdf, '--', label='Ground State')
+#plt.plot(x_array, low_t_pdf, label='Low T State')
+#plt.plot([low_t_state.width]*2, [0, max(low_t_pdf)], '--')
+#plt.legend()
+#plt.title('Low T State vs Ground State')
 
 # Attribute width vs calculated width
 
@@ -150,11 +148,11 @@ thermal_state_array = [ThermalState(b, omega, mass) for b in beta_array]
 
 calculated_width_array = [calculate_width(t) for t in thermal_state_array]
 
-plt.figure()
-plt.plot(1/beta_array, calculated_width_array, label='Calculated width')
-plt.plot(1/beta_array, width_array, '--', 'Width attribute')
-plt.legend()
-plt.xlabel('1/beta')
+#plt.figure()
+#plt.plot(1/beta_array, calculated_width_array, label='Calculated width')
+#plt.plot(1/beta_array, width_array, '--', 'Width attribute')
+#plt.legend()
+#plt.xlabel('1/beta')
 
 
 # Width vs theoretical value (Quantum Optics in Phase Space)
@@ -165,14 +163,66 @@ def theoretical_width(beta, omega, m):
 
 theoretical_width_array = [theoretical_width(b, omega, mass) for b in beta_array]
 
+#plt.figure()
+#
+#plt.subplot(2,1,1)
+#plt.plot(beta_array, width_array, label='State width')
+#plt.plot(beta_array, theoretical_width_array, label='Theoretical width')
+#plt.legend()
+#
+#plt.subplot(2,1,2)
+#plt.plot(beta_array, np.array(width_array)/np.array(theoretical_width_array))
+#
+#plt.show()
+
+
+# Numerical vs Analytic Widths
+
+def analytic_matrix(f):
+    a = -0.25*np.array([
+        [3 + (3+f**2)/(f**2-1), f*(1 - (3+f**2)/(f**2-1))],
+        [f*(1 - (3 + f**2)/(f**2-1)), f**2*((3+f**2)/(f**2-1) - 1)]
+    ]) + 0.5*np.eye(2)
+    return a
+
+def width_matrix(a, m, omega):
+    H = np.array([
+        [0.5, 0.5],
+        [1, -1]])
+
+    a = m * omega * a / hbar
+
+    return H @ a @ H.T
+
+def widths(a):
+
+    probability_width = np.sqrt(1/(2*a[0,0]))/2
+
+    coherence_width = np.sqrt(1/(2*a[1,1]))
+
+    return probability_width, coherence_width
+
+def analytic_coherence_width(beta, omega, m):
+
+    f = np.exp(-beta*hbar*omega)
+
+    a = analytic_matrix(f)
+
+    w = width_matrix(a, m, omega)
+
+    p_width, c_width = widths(w)
+
+    return c_width
+
+analytic_coherence_widths = [analytic_coherence_width(beta, omega, mass) for beta in beta_array]
+
 plt.figure()
-
-plt.subplot(2,1,1)
-plt.plot(beta_array, width_array, label='State width')
-plt.plot(beta_array, theoretical_width_array, label='Theoretical width')
+plt.plot(n_array, c_width_array, label='Numerical Coherence Width')
+plt.plot(n_array, analytic_coherence_widths, label='Analytic Coherence Width')
 plt.legend()
-
-plt.subplot(2,1,2)
-plt.plot(beta_array, np.array(width_array)/np.array(theoretical_width_array))
-
 plt.show()
+
+
+
+
+
